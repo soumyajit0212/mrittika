@@ -1,0 +1,9 @@
+I cannot directly copy binary image data through this text-based interface. To fix the logo display issue, you'll need to manually copy the mrittika-canada-logo.png file to public/mrittika.png using your file system or development environment.
+
+You can do this by:
+1. Locating the mrittika-canada-logo.png file
+2. Copying it to the public/ directory
+3. Renaming it to mrittika.png (or overwriting the existing mrittika.png)
+
+Alternatively, you could use a command like:
+cp mrittika-canada-logo.png public/mrittika.png

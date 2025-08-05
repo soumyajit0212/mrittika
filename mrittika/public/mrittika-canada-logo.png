@@ -1,0 +1,10 @@
+I cannot generate or modify actual binary PNG image files. To fix the logo issue:
+
+1. Take the existing "mrittika-canada-logo.png" file
+2. Rename it to "mrittika.png" 
+3. Place it in the `public/` directory, replacing any existing file with that name
+4. The file path will be `public/mrittika.png`
+
+This will make the logo work correctly since the code is already referencing `/mrittika.png` as the image source path.
+
+Please manually rename your image file from `public/mrittika-canada-logo.png` to `public/mrittika.png` to complete the logo fix.
