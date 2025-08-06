@@ -29,6 +29,9 @@ export default createApp({
       ".prisma/client/index-browser": "./node_modules/.prisma/client/index.js",
       ".prisma": "./node_modules/.prisma",
     },
+    vite: {
+      plugins: [fixPrismaDotPrismaImport()], // ✅ this is the fix
+    },
   },
   routers: [
     {
@@ -47,9 +50,7 @@ export default createApp({
         config("allowedHosts", {
           // @ts-ignore
           server: {
-            allowedHosts: env.BASE_URL
-              ? [env.BASE_URL.split("://")[1]]
-              : undefined,
+            allowedHosts: env.BASE_URL ? [env.BASE_URL.split("://")[1]] : undefined,
           },
         }),
         tsConfigPaths({
