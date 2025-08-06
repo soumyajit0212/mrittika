@@ -7,7 +7,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("DATABASE_URL") // hardcoded because it's an internal docker connection
 }
 
 model User {
@@ -134,7 +134,6 @@ model OrderMaster {
   member    Member? @relation(fields: [memberId], references: [id])
   orderDate DateTime @default(now())
   totalCost Float
-  status       String @default("PENDING") // PENDING, CONFIRMED, CANCELLED, COMPLETED, REFUNDED
   transactionId String @unique
   orderLines OrderLine[]
   createdAt DateTime @default(now())

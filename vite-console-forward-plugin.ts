@@ -98,8 +98,6 @@ const logBuffer = [];
 let flushTimeout = null;
 const FLUSH_DELAY = 100;
 const MAX_BUFFER_SIZE = 50;
-let isUnloading = false;
-const abortController = new AbortController();
 
 function createLogEntry(level, args) {
   const stacks = [];
@@ -143,91 +141,30 @@ function createLogEntry(level, args) {
   };
 }
 
-let isFlushing = false;
-
-async function sendLogs(logs, useBeacon = false) {
-  if (isFlushing) return; // Prevent concurrent flush operations
-  isFlushing = true;
-
+async function sendLogs(logs) {
   try {
-    if (isUnloading && useBeacon && navigator.sendBeacon) {
-      // Use sendBeacon for final logs during page unload - it's designed for this
-      try {
-        const success = navigator.sendBeacon("${endpoint}", JSON.stringify({ logs }));
-        if (!success) {
-          // Fall back to fetch with keepalive if sendBeacon fails
-          await fetch("${endpoint}", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ logs }),
-            keepalive: true,
-          });
-        }
-      } catch (error) {
-        // Fail silently during unload
-      }
-      return;
-    }
-
     await fetch("${endpoint}", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ logs }),
-      signal: abortController.signal,
-      keepalive: useBeacon,
     });
   } catch (error) {
-    // Only log errors in development, fail silently in production
-    if (error.name !== 'AbortError') {
-      // Fail silently for non-abort errors too
-    }
-  } finally {
-    isFlushing = false;
+    // Fail silently in production
   }
 }
 
-function flushLogs(useBeacon = false) {
-  if (logBuffer.length === 0 || isFlushing) return;
-  
+function flushLogs() {
+  if (logBuffer.length === 0) return;
   const logsToSend = [...logBuffer];
   logBuffer.length = 0;
-  
+  sendLogs(logsToSend);
   if (flushTimeout) {
     clearTimeout(flushTimeout);
     flushTimeout = null;
   }
-
-  // During unload, we need to avoid creating promises that might not resolve
-  if (isUnloading && useBeacon) {
-    // Synchronous beacon send to avoid promise issues during unload
-    try {
-      const success = navigator.sendBeacon("${endpoint}", JSON.stringify({ logs: logsToSend }));
-      if (!success) {
-        // If sendBeacon fails, try a synchronous fetch with keepalive
-        // This might still fail but won't create unhandled promises
-        fetch("${endpoint}", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ logs: logsToSend }),
-          keepalive: true,
-        }).catch(() => {
-          // Fail silently
-        });
-      }
-    } catch (error) {
-      // Fail silently
-    }
-  } else {
-    // Normal async send for non-unload scenarios
-    sendLogs(logsToSend, useBeacon).catch(() => {
-      // Fail silently to avoid unhandled promise rejections
-    });
-  }
 }
 
 function addToBuffer(entry) {
-  if (isUnloading) return; // Don't add new logs during unload
-  
   logBuffer.push(entry);
   if (logBuffer.length >= MAX_BUFFER_SIZE) {
     flushLogs();
@@ -250,38 +187,9 @@ console.${level} = function(...args) {
   )
   .join("")}
 
-// Cleanup handlers with better promise handling
-let hasUnloadHandlerRun = false;
-
-window.addEventListener("beforeunload", () => {
-  if (hasUnloadHandlerRun) return;
-  isUnloading = true;
-  flushLogs(true); // This is now synchronous during unload
-});
-
-// Also handle visibility change for better reliability
-document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "hidden" && !isUnloading && !hasUnloadHandlerRun) {
-    flushLogs(true); // Use beacon when page becomes hidden
-  }
-});
-
-// Periodic flush (less frequent to reduce requests)
-const flushInterval = setInterval(() => {
-  if (!isUnloading && !hasUnloadHandlerRun) {
-    flushLogs();
-  }
-}, 10000);
-
-// Cleanup on page unload - abort any pending requests and clear interval
-window.addEventListener("unload", () => {
-  hasUnloadHandlerRun = true;
-  clearInterval(flushInterval);
-  // Give a small delay before aborting to allow any final beacon sends
-  setTimeout(() => {
-    abortController.abort();
-  }, 10);
-});
+// Cleanup handlers
+window.addEventListener("beforeunload", flushLogs);
+setInterval(flushLogs, 10000);
 
 export default { flushLogs };
         `;

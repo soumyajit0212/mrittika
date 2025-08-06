@@ -1,13 +1,10 @@
 {
-  "version": 2,
-  "builds": [
-    { "src": "package.json", "use": "@vercel/node" }
-  ],
-  "routes": [
-    {
-      "src": "/.*",
-      "dest": ".output/server/index.mjs"
+  "buildCommand": "pnpm build",
+  "outputDirectory": ".output",
+  "framework": null,
+  "build": {
+    "env": {
+      "PNPM_IGNORE_SCRIPTS": "false"
     }
-  ],
-  "outputDirectory": ".output/public"
+  }
 }
