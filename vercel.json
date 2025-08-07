@@ -1,8 +1,16 @@
 {
   "buildCommand": "pnpm build",
-  "outputDirectory": "dist", // or actual output dir with index.html
+  "outputDirectory": ".output",
   "framework": null,
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/" }
-  ]
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "server/index.mjs"
+    }
+  ],
+  "build": {
+    "env": {
+      "PNPM_IGNORE_SCRIPTS": "false"
+    }
+  }
 }
