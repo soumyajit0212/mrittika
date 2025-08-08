@@ -879,7 +879,7 @@ function GuestRegistrationPage() {
                             <Check className="h-4 w-4 mr-1" />
                             Entry Discount ({discountPct} discount applied):
                           </span>
-                          <span className="text-sm font-medium text-green-600">-${((entryCost / discountF) * 0.3).toFixed(2)}</span>
+                          <span className="text-sm font-medium text-green-600">-${(((entryCost / discountF).toFixed(2)) *((1 - discountF)).toFixed(2)).toFixed(2)}</span>
                         </div>
                       )}
                       <div className="flex justify-between items-center mb-2">
