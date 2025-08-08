@@ -1,7 +1,7 @@
 {
   "name": "first-project",
   "scripts": {
-    "postinstall": "mkdir -p src/generated/tanstack-router && prisma generate && tsr generate",
+    "postinstall": "prisma generate && tsr generate",
     "dev": "vinxi dev",
     "build": "vinxi build",
     "start": "vinxi start",
