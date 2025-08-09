@@ -10,6 +10,7 @@ import { consoleForwardPlugin } from "./vite-console-forward-plugin";
 export default createApp({
   server: {
     preset: "vercel", // change to 'netlify' or 'bun' or anyof the supported presets for nitro (nitro.unjs.io)
+    nitro: { externals: { inline: [".prisma", "@prisma/client"] } },
     experimental: {
       asyncContext: true,
     },

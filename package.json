@@ -4,7 +4,7 @@
     "postinstall": "prisma generate",
     "prebuild": "node -e \"require('fs').mkdirSync('src/generated/tanstack-router', { recursive: true })\"",
     "dev": "tsr generate --watch & vinxi dev",
-    "build": "prisma migrate deploy && tsr generate && vinxi build",
+    "build": "tsr generate && vinxi build",
     "start": "vinxi start",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . -c eslint.config.mjs --max-warnings 0",
