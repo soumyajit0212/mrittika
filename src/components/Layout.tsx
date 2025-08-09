@@ -38,7 +38,7 @@ export function Layout({ children }: LayoutProps) {
   const menuItems = [
     ...(user.role === "ADMIN" ? [
       { name: "User Management", href: "/admin/users", icon: Users },
-      { name: "Order Management", href: "/admin/orders", icon: Receipt },
+      { name: "Registration Management", href: "/admin/orders", icon: Receipt },
       { name: "Venue Management", href: "/admin/venues", icon: MapPin },
     ] : []),
     { name: "Event Management", href: "/admin/events", icon: Calendar },

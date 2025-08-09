@@ -134,6 +134,7 @@ model OrderMaster {
   member    Member? @relation(fields: [memberId], references: [id])
   orderDate DateTime @default(now())
   totalCost Float
+  status       String @default("PENDING") // PENDING, CONFIRMED, CANCELLED, COMPLETED, REFUNDED
   transactionId String @unique
   orderLines OrderLine[]
   createdAt DateTime @default(now())
