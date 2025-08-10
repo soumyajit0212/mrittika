@@ -4,7 +4,7 @@
       "NODE_VERSION": "20"
     }
   },
-  "installCommand": "corepack enable && corepack prepare pnpm@9.12.3 --activate && node -v && pnpm -v && pnpm install --no-frozen-lockfile",
-  "buildCommand": "pnpm build",
+  "installCommand": "corepack enable && corepack prepare pnpm@9.12.3 --activate && node -v && corepack pnpm -v && corepack pnpm install --no-frozen-lockfile",
+  "buildCommand": "corepack pnpm build",
   "framework": "vite"
 }

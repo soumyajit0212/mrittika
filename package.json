@@ -1,5 +1,9 @@
 {
   "name": "first-project",
+  "packageManager": "pnpm@9.12.3",
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "postinstall": "prisma generate && tsr generate",
     "dev": "vinxi dev",
@@ -12,9 +16,6 @@
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "format": "prettier --write ."
-  },
-  "engines": {
-    "node": "20.x"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.3",
@@ -72,6 +73,5 @@
     "vite-tsconfig-paths": "^5.1.4"
   },
   "private": true,
-  "type": "module",
-  "packageManager": "pnpm@9.12.3"
+  "type": "module"
 }
