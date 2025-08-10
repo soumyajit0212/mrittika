@@ -3,7 +3,7 @@
   "scripts": {
     "postinstall": "prisma generate && tsr generate",
     "dev": "vinxi dev",
-    "build": "vite build",
+    "build": "vinxi build",
     "start": "vinxi start",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . -c eslint.config.mjs --max-warnings 0",
@@ -14,7 +14,7 @@
     "format": "prettier --write ."
   },
   "engines": {
-    "node": ">=18"
+    "node": "20.x"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.3",
@@ -72,5 +72,6 @@
     "vite-tsconfig-paths": "^5.1.4"
   },
   "private": true,
-  "type": "module"
+  "type": "module",
+  "packageManager": "pnpm@9.12.3"
 }
