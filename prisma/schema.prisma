@@ -11,76 +11,76 @@ datasource db {
 }
 
 model User {
-  id       Int    @id @default(autoincrement())
-  email    String @unique
-  password String
-  role     String // ADMIN, MEMBER, GUEST
-  memberId Int?   @unique
-  member   Member? @relation(fields: [memberId], references: [id])
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  role      String // ADMIN, MEMBER, GUEST
+  memberId  Int?     @unique
+  member    Member?  @relation(fields: [memberId], references: [id])
   createdAt DateTime @default(now())
 }
 
 model Member {
-  id          Int    @id @default(autoincrement())
+  id          Int           @id @default(autoincrement())
   memberName  String
-  memberEmail String @unique
+  memberEmail String        @unique
   memberPhone String?
-  adults      Int    @default(1)
-  children    Int    @default(0)
-  infants     Int    @default(0)
-  elder       Int    @default(0)
+  adults      Int           @default(1)
+  children    Int           @default(0)
+  infants     Int           @default(0)
+  elder       Int           @default(0)
   user        User?
   guests      Guest[]
   expenses    Expense[]
   orders      OrderMaster[]
-  createdAt   DateTime @default(now())
+  createdAt   DateTime      @default(now())
 }
 
 model Guest {
-  id           Int    @id @default(autoincrement())
-  memberId     Int
-  member       Member @relation(fields: [memberId], references: [id])
-  guestName    String
-  guestEmail   String?
-  guestPhone   String?
+  id            Int           @id @default(autoincrement())
+  memberId      Int
+  member        Member        @relation(fields: [memberId], references: [id])
+  guestName     String
+  guestEmail    String?
+  guestPhone    String?
   guestLocation String?
-  adults       Int    @default(1)
-  children     Int    @default(0)
-  infants      Int    @default(0)
-  elder        Int    @default(0)
-  orders       OrderMaster[]
-  createdAt    DateTime @default(now())
+  adults        Int           @default(1)
+  children      Int           @default(0)
+  infants       Int           @default(0)
+  elder         Int           @default(0)
+  orders        OrderMaster[]
+  createdAt     DateTime      @default(now())
 }
 
 model Product {
-  id           Int    @id @default(autoincrement())
-  productCode  String @unique
-  productName  String
-  productDesc  String?
-  productType  String // Food, Entry
-  status       String @default("ACTIVE")
-  productTypes ProductType[]
+  id                 Int                 @id @default(autoincrement())
+  productCode        String              @unique
+  productName        String
+  productDesc        String?
+  productType        String // Food, Entry
+  status             String              @default("ACTIVE")
+  productTypes       ProductType[]
   productSessionMaps ProductSessionMap[]
-  orderLines   OrderLine[]
-  createdAt    DateTime @default(now())
+  orderLines         OrderLine[]
+  createdAt          DateTime            @default(now())
 }
 
 model ProductType {
-  id             Int    @id @default(autoincrement())
+  id             Int         @id @default(autoincrement())
   productId      Int
-  product        Product @relation(fields: [productId], references: [id])
+  product        Product     @relation(fields: [productId], references: [id])
   productSize    String // Adult, Children, Elder
   productChoice  String // VEG, NON-VEG, NONE
   productPref    String // CHICKEN, MUTTON, NONE
   productPrice   Float
   productSubtype String // PACKET, DINE-IN, NONE
-  status         String @default("ACTIVE")
+  status         String      @default("ACTIVE")
   orderLines     OrderLine[]
-  createdAt      DateTime @default(now())
+  createdAt      DateTime    @default(now())
 }
 
 model Venue {
-  id            Int    @id @default(autoincrement())
+  id            Int      @id @default(autoincrement())
   venueAddress  String
   venueCapacity Int
   venueDetails  String?
@@ -89,80 +89,80 @@ model Venue {
 }
 
 model Event {
-  id           Int    @id @default(autoincrement())
+  id           Int            @id @default(autoincrement())
   eventName    String
   startDate    DateTime
   endDate      DateTime
   eventDetails String?
   venueId      Int
-  venue        Venue  @relation(fields: [venueId], references: [id])
+  venue        Venue          @relation(fields: [venueId], references: [id])
   sessions     EventSession[]
   expenses     Expense[]
-  createdAt    DateTime @default(now())
+  createdAt    DateTime       @default(now())
 }
 
 model EventSession {
-  id                    Int    @id @default(autoincrement())
-  sessionName           String
-  sessionDate           DateTime
-  startTime             String
-  endTime               String
-  sessionDetails        String?
+  id                     Int                 @id @default(autoincrement())
+  sessionName            String
+  sessionDate            DateTime
+  startTime              String
+  endTime                String
+  sessionDetails         String?
   sessionBalanceCapacity Int
-  eventId               Int
-  event                 Event  @relation(fields: [eventId], references: [id])
-  productSessionMaps    ProductSessionMap[]
-  createdAt             DateTime @default(now())
+  eventId                Int
+  event                  Event               @relation(fields: [eventId], references: [id])
+  productSessionMaps     ProductSessionMap[]
+  createdAt              DateTime            @default(now())
 }
 
 model ProductSessionMap {
-  id        Int    @id @default(autoincrement())
+  id        Int          @id @default(autoincrement())
   sessionId Int
   session   EventSession @relation(fields: [sessionId], references: [id])
   productId Int
-  product   Product @relation(fields: [productId], references: [id])
-  createdAt DateTime @default(now())
+  product   Product      @relation(fields: [productId], references: [id])
+  createdAt DateTime     @default(now())
 
   @@unique([sessionId, productId])
 }
 
 model OrderMaster {
-  id        Int    @id @default(autoincrement())
-  guestId   Int?
-  guest     Guest? @relation(fields: [guestId], references: [id])
-  memberId  Int?
-  member    Member? @relation(fields: [memberId], references: [id])
-  orderDate DateTime @default(now())
-  totalCost Float
-  status       String @default("PENDING") // PENDING, CONFIRMED, CANCELLED, COMPLETED, REFUNDED
-  transactionId String @unique
-  orderLines OrderLine[]
-  createdAt DateTime @default(now())
+  id            Int         @id @default(autoincrement())
+  guestId       Int?
+  guest         Guest?      @relation(fields: [guestId], references: [id])
+  memberId      Int?
+  member        Member?     @relation(fields: [memberId], references: [id])
+  orderDate     DateTime    @default(now())
+  totalCost     Float
+  status        String      @default("PENDING") // PENDING, CONFIRMED, CANCELLED, COMPLETED, REFUNDED
+  transactionId String      @unique
+  orderLines    OrderLine[]
+  createdAt     DateTime    @default(now())
 }
 
 model OrderLine {
-  id        Int    @id @default(autoincrement())
-  orderId   Int
-  order     OrderMaster @relation(fields: [orderId], references: [id])
-  productId Int
-  product   Product @relation(fields: [productId], references: [id])
+  id            Int          @id @default(autoincrement())
+  orderId       Int
+  order         OrderMaster  @relation(fields: [orderId], references: [id])
+  productId     Int
+  product       Product      @relation(fields: [productId], references: [id])
   productTypeId Int?
   productType   ProductType? @relation(fields: [productTypeId], references: [id])
-  quantity  Int
-  sessionId Int?
-  createdAt DateTime @default(now())
+  quantity      Int
+  sessionId     Int?
+  createdAt     DateTime     @default(now())
 }
 
 model Expense {
-  id          Int    @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   expenseType String
   vendor      String
   incurredBy  Int
-  member      Member @relation(fields: [incurredBy], references: [id])
+  member      Member   @relation(fields: [incurredBy], references: [id])
   receiptFile String?
   eventId     Int
-  event       Event  @relation(fields: [eventId], references: [id])
+  event       Event    @relation(fields: [eventId], references: [id])
   amount      Float
-  status      String @default("PENDING") // PENDING, APPROVED, REJECTED
+  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
   createdAt   DateTime @default(now())
 }

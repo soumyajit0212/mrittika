@@ -34,7 +34,7 @@ function ExpensesPage() {
   const [uploadedFileUrl, setUploadedFileUrl] = useState<string>("");
 
   const expensesQuery = useQuery(
-    trpc.getExpenses.queryOptions({ 
+    trpc.getExpenses.queryOptions({
       authToken: token!,
       eventId: selectedEventId || undefined,
       status: selectedStatus as any || undefined
@@ -74,7 +74,7 @@ function ExpensesPage() {
         // Get the file from the component state
         const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
         const file = fileInput?.files?.[0];
-        
+
         if (!file) {
           throw new Error('No file selected');
         }
@@ -156,7 +156,7 @@ function ExpensesPage() {
     }
 
     setUploadingFile(true);
-    
+
     try {
       await getPresignedUrlMutation.mutateAsync({
         authToken: token,
@@ -319,7 +319,7 @@ function ExpensesPage() {
                   {expense.receiptFile && (
                     <div className="flex items-center text-sm text-gray-600">
                       <Download className="h-4 w-4 mr-2" />
-                      <FileDownload 
+                      <FileDownload
                         fileName={expense.receiptFile.split('/').pop() || ''}
                         displayName="View Receipt"
                       />
@@ -449,30 +449,6 @@ function ExpensesPage() {
                   {errors.eventId && (
                     <p className="mt-1 text-sm text-red-600">{errors.eventId.message}</p>
                   )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Receipt File
-                  </label>
-                  <div className="mt-1">
-                    <input
-                      type="file"
-                      accept="image/*,.pdf"
-                      onChange={handleFileUpload}
-                      disabled={uploadingFile}
-                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
-                    />
-                    {uploadingFile && (
-                      <p className="mt-2 text-sm text-blue-600">Uploading file...</p>
-                    )}
-                    {uploadedFileUrl && (
-                      <p className="mt-2 text-sm text-green-600">✓ File uploaded successfully</p>
-                    )}
-                  </div>
-                  <p className="mt-1 text-xs text-gray-500">
-                    Upload a receipt image or PDF (max 10MB)
-                  </p>
                 </div>
 
                 <div className="flex justify-end space-x-3 pt-4">

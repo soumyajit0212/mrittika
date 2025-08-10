@@ -14,7 +14,7 @@ export const getPresignedUrlForUpload = baseProcedure
     await requireAuth(input.authToken);
 
     const bucketName = "expense-receipts";
-    
+
     // Generate unique object name with timestamp and random string
     const timestamp = Date.now();
     const randomString = randomBytes(8).toString('hex');
@@ -30,7 +30,7 @@ export const getPresignedUrlForUpload = baseProcedure
 
       // Generate presigned URL (expires in 15 minutes)
       const presignedUrl = await minioClient.presignedPutObject(bucketName, objectName, 15 * 60);
-      
+
       return {
         presignedUrl,
         objectName,
