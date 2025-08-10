@@ -1,0 +1,6 @@
+{
+  "framework": null,
+  "installCommand": "corepack enable && corepack prepare pnpm@9.12.3 --activate && pnpm install --no-frozen-lockfile",
+  "buildCommand": "pnpm build",
+  "outputDirectory": ".vercel/output"
+}
