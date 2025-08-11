@@ -1,7 +1,5 @@
 {
-  "buildCommand": "pnpm build",
   "installCommand": "pnpm install",
-  "rewrites": [
-    { "source": "/trpc/:path*", "destination": "/api/trpc/:path*" }
-  ]
+  "buildCommand": "pnpm migrate:deploy && pnpm build",
+  "framework": "vite"
 }
