@@ -112,7 +112,7 @@ function Home() {
           <p className="text-gray-600">
             Use the navigation menu to access different features.
           </p>
-          
+
           {/* Registration count placeholder */}
           <div className="bg-white rounded-lg shadow p-6 max-w-sm mx-auto">
             <div className="flex items-center justify-center">
@@ -140,9 +140,9 @@ function Home() {
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center mb-6">
-          <img 
-            src="/mrittika.png" 
-            alt="Mrittika Canada Logo" 
+          <img
+            src="/mrittika.png"
+            alt="Mrittika Canada Logo"
             className="h-20 w-auto"
           />
         </div>
@@ -252,7 +252,7 @@ function Home() {
 
               <div className="space-y-4">
                 <h4 className="text-sm font-medium text-gray-900">Family Details</h4>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label htmlFor="adults" className="block text-sm font-medium text-gray-700">
@@ -344,19 +344,7 @@ function Home() {
             </form>
           )}
 
-          <div className="mt-6">
-            <div className="text-center">
-              <button
-                type="button"
-                onClick={() => setIsLogin(!isLogin)}
-                className="text-sm text-red-600 hover:text-red-500"
-              >
-                {isLogin
-                  ? "Don't have an account? Register here"
-                  : "Already have an account? Sign in here"}
-              </button>
-            </div>
-          </div>
+
         </div>
       </div>
     </div>
