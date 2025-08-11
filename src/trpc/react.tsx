@@ -1,24 +1,28 @@
 // src/trpc/react.tsx
-import React, { useState } from "react";
+import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { httpBatchLink, loggerLink } from "@trpc/client";
-import superjson from "superjson";
+import { createTRPCReact, httpBatchLink, loggerLink } from "@trpc/react-query";
+import SuperJSON from "superjson";
+import type { AppRouter } from "~/server/trpc/root";
 
-import { trpc } from "./client";
+// Canonical v11 hook namespace: trpc.<routerPath>.<useQuery|useMutation|...>
+export const trpc = createTRPCReact<AppRouter>();
 
-// Prefer relative URL so requests stay on the same origin in prod & dev
 function getBaseUrl() {
+  // Browser -> same origin
   if (typeof window !== "undefined") return "";
-  // SSR (if any). Vercel sets VERCEL_URL without protocol.
+  // Serverless (Vercel)
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  // Local dev
   return "http://localhost:3000";
 }
 
-export function TRPCReactProvider({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(() => new QueryClient());
-  const [trpcClient] = useState(() =>
+export function TRPCProvider({ children }: { children: React.ReactNode }) {
+  const [queryClient] = React.useState(() => new QueryClient());
+
+  const [client] = React.useState(() =>
     trpc.createClient({
-      transformer: superjson,
+      transformer: SuperJSON,
       links: [
         loggerLink({
           enabled: (op) =>
@@ -27,29 +31,34 @@ export function TRPCReactProvider({ children }: { children: React.ReactNode }) {
         }),
         httpBatchLink({
           url: `${getBaseUrl()}/trpc`,
+          fetch(url, opts) {
+            // include cookies for auth if you use them
+            return fetch(url, { ...opts, credentials: "include" });
+          },
         }),
       ],
-    }),
+    })
   );
 
-  // IMPORTANT: QueryClientProvider should wrap trpc.Provider
   return (
     <QueryClientProvider client={queryClient}>
-      <trpc.Provider client={trpcClient} queryClient={queryClient}>
+      <trpc.Provider client={client} queryClient={queryClient}>
         {children}
       </trpc.Provider>
     </QueryClientProvider>
   );
 }
 
-// ---- Convenience re-exports ----
+/** ---------- Compatibility shims (so older code keeps working) ---------- */
 
-// If some files still import { useTRPC } from "~/trpc/react",
-// this shim lets them keep working without refactors.
+// If some pages still do: `import { useTRPC } from "~/trpc/react"`
 export function useTRPC() {
+  // Return the namespace so calls like useTRPC().login.useMutation still work.
   return trpc;
 }
 
-// If some code needs the raw TRPC client, prefer using the hooks on `trpc`,
-// but we can add helpers later if needed.
-export { trpc } from "./client";
+// If some code expects `useTRPCClient()` to exist:
+export function useTRPCClient() {
+  // In v11 we can get the underlying client off the utils context
+  return trpc.useUtils().client;
+}
