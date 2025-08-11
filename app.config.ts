@@ -1,11 +1,10 @@
 // app.config.ts
 import react from "@vitejs/plugin-react";
 import tsconfigPaths from "vite-tsconfig-paths";
-import { nodePolyfills } from "vite-plugin-node-polyfills"; // ⬅️ named import
-import { routerPlugin } from "@tanstack/router-plugin";
+import { nodePolyfills } from "vite-plugin-node-polyfills";
+import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 
-// We pre-generate the route tree on Vercel in `prevercel-build`, so
-// only run the router plugin locally (dev).
+// Only run the router plugin locally (we pre-generate on Vercel)
 const enableRouterPlugin =
   process.env.NODE_ENV !== "production" && !process.env.VERCEL;
 
@@ -23,14 +22,14 @@ const config = {
           react(),
           ...(enableRouterPlugin
             ? [
-                routerPlugin({
+                TanStackRouterVite({
                   routesDirectory: "./src/routes",
                   generatedRouteTree:
                     "./src/generated/tanstack-router/routeTree.gen.ts",
                 }),
               ]
             : []),
-          nodePolyfills(), // ⬅️ call the plugin
+          nodePolyfills(),
         ],
       },
     },
