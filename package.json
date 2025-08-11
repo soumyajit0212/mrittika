@@ -5,7 +5,7 @@
     "node": "20.x"
   },
   "scripts": {
-    "prebuild": "tsr generate || true",
+    "prebuild": "node -e \"require('fs').mkdirSync('src/generated/tanstack-router',{recursive:true})\" && tsr generate || true",
     "postinstall": "node -e \"console.log('skip prisma generate on Vercel')\"",
     "dev": "vinxi dev",
     "build": "vinxi build",
