@@ -1,30 +1,25 @@
 // app.config.ts
 import { createApp } from "vinxi";
-import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
-import tailwindcss from "@tailwindcss/vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
+import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 
 export default createApp({
-  // Vercel target
   server: { preset: "vercel" },
 
-  // Vite config shared by routers
   vite: {
     plugins: () => [
       tsconfigPaths(),
-      tailwindcss(),
       nodePolyfills(),
       TanStackRouterVite({
-        // keep generated files alongside your src
-        // (you’re already running `tsr generate` in prebuild)
         routes: { dir: "src/routes" },
+        // make the plugin write to the same place your `tsr generate` step does
+        generatedModule: "src/generated/tanstack-router/routeTree.gen.ts",
       }),
     ],
   },
 
   routers: [
-    // Client SPA
     {
       name: "client",
       type: "spa",
@@ -32,8 +27,6 @@ export default createApp({
       handler: "./src/main.tsx",
       target: "browser",
     },
-
-    // tRPC HTTP endpoint
     {
       name: "trpc",
       type: "http",
@@ -41,8 +34,6 @@ export default createApp({
       handler: "./src/server/trpc/handler.ts",
       target: "server",
     },
-
-    // Debug logs HTTP endpoint
     {
       name: "debug-logs",
       type: "http",
