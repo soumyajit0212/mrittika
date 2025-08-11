@@ -1,3 +1,4 @@
+// app.config.ts
 import "dotenv/config";
 
 import { createApp } from "vinxi";
@@ -7,6 +8,7 @@ import react from "@vitejs/plugin-react";
 import { config } from "vinxi/plugins/config";
 import { env } from "./src/server/env";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
+// keep the import — we’ll only add the plugin in dev
 import { consoleForwardPlugin } from "./vite-console-forward-plugin";
 
 function allowedHostsFromEnv() {
@@ -20,7 +22,7 @@ export default createApp({
     experimental: { asyncContext: true },
   },
   routers: [
-    // tRPC HTTP handler
+    // tRPC server
     {
       type: "http",
       name: "trpc",
@@ -28,13 +30,12 @@ export default createApp({
       handler: "./src/server/trpc/handler.ts",
       target: "server",
       plugins: () => [
-        process.env.NODE_ENV !== "production" &&
-          (config("allowedHosts", { server: { allowedHosts: allowedHostsFromEnv() } }) as any),
+        config("allowedHosts", { server: { allowedHosts: allowedHostsFromEnv() } } as any),
         tsConfigPaths({ projects: ["./tsconfig.json"] }),
-      ].filter(Boolean),
+      ],
     },
 
-    // Client log forwarding (safe no-throw handler)
+    // client log collector (server-side)
     {
       type: "http",
       name: "debug-logs",
@@ -42,10 +43,9 @@ export default createApp({
       handler: "./src/server/debug/client-logs-handler.ts",
       target: "server",
       plugins: () => [
-        process.env.NODE_ENV !== "production" &&
-          (config("allowedHosts", { server: { allowedHosts: allowedHostsFromEnv() } }) as any),
+        config("allowedHosts", { server: { allowedHosts: allowedHostsFromEnv() } } as any),
         tsConfigPaths({ projects: ["./tsconfig.json"] }),
-      ].filter(Boolean),
+      ],
     },
 
     // SPA client
@@ -55,13 +55,13 @@ export default createApp({
       handler: "./index.html",
       target: "browser",
       plugins: () => [
+        config("allowedHosts", { server: { allowedHosts: allowedHostsFromEnv() } } as any),
         tsConfigPaths({ projects: ["./tsconfig.json"] }),
         TanStackRouterVite({
           autoCodeSplitting: true,
           routesDirectory: "./src/routes",
           generatedRouteTree: "./src/generated/routeTree.gen.ts",
         }),
-        // Avoid resolving Node inspector in the browser
         {
           name: "disable-node-polyfills",
           config() {
@@ -78,11 +78,17 @@ export default createApp({
         } as any,
         react(),
         nodePolyfills(),
-        consoleForwardPlugin({
-          enabled: process.env.NODE_ENV !== "production",
-          endpoint: "/api/debug/client-logs",
-          levels: ["log", "warn", "error", "info"],
-        }),
+
+        // ⬇️ Add the console forwarder ONLY in development to avoid prod crashes
+        ...(process.env.NODE_ENV !== "production"
+          ? [
+              consoleForwardPlugin({
+                enabled: true,
+                endpoint: "/api/debug/client-logs",
+                levels: ["log", "info", "warn", "error"], // keep it simple in dev
+              }),
+            ]
+          : []),
       ],
     },
   ],
