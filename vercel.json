@@ -1,10 +1,6 @@
 {
-  "buildCommand": "pnpm build",
   "installCommand": "pnpm install --no-frozen-lockfile",
-  "functions": {
-    "api/**/*.js": {
-      "memory": 1024,
-      "maxDuration": 60
-    }
-  }
+  "buildCommand": "pnpm run vercel-build",
+  "devCommand": "pnpm run dev",
+  "framework": null
 }
