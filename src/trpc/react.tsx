@@ -1,16 +1,18 @@
 // src/trpc/react.tsx
 import { useState, type PropsWithChildren } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import SuperJSON from "superjson";
 import { createTRPCReact } from "@trpc/react-query";
 import { httpBatchLink, loggerLink } from "@trpc/client";
+import SuperJSON from "superjson";
 
 import type { AppRouter } from "~/server/trpc/root";
 
 export const trpc = createTRPCReact<AppRouter>();
 
 function getBaseUrl() {
+  // On the browser, use same-origin so cookies/sessions work on Vercel
   if (typeof window !== "undefined") return window.location.origin;
+  // Fallback for local dev during SSR/prerendered builds
   return "http://localhost:3000";
 }
 
@@ -42,7 +44,6 @@ export function TRPCReactProvider({ children }: PropsWithChildren) {
   );
 }
 
-/** Back-compat shim so existing code `import { useTRPC } from "~/trpc/react"` still works */
+// Back-compat helpers (so older imports keep working)
 export const useTRPC = () => trpc.useContext();
-/** If you used `useTRPCClient` before, this gives you the underlying tRPC client */
-export const useTRPCClient = () => trpc.useContext().client;
+export const useTRPCClient = () => trpc.useUtils().client ?? (trpc as any)._client;
