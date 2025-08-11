@@ -1,4 +1,4 @@
-import { createTRPCReact } from "@trpc/react-query";
+import { createTRPCReact } from "@trpc/tanstack-react-query";
 import { httpBatchLink } from "@trpc/client";
 import type { AppRouter } from "../server/trpc/router"; // adjust path
 
