@@ -1,11 +1,9 @@
-import { createTRPCReact } from '@trpc/react-query';
+// src/trpc/client.ts
+import { trpc } from './react';
 import { httpBatchLink, loggerLink } from '@trpc/client';
 import superjson from 'superjson';
 import type { AppRouter } from '../server/trpc/root';
 
-export const trpc = createTRPCReact<AppRouter>();
-
-// If you pass a token getter, we'll add it to headers
 export function createClient(getToken?: () => string | null) {
   const baseUrl =
     typeof window === 'undefined'
@@ -17,7 +15,7 @@ export function createClient(getToken?: () => string | null) {
     links: [
       loggerLink({ enabled: () => process.env.NODE_ENV !== 'production' }),
       httpBatchLink({
-        url: `${baseUrl}/trpc`, // matches app.config.ts base
+        url: `${baseUrl}/trpc`,
         headers() {
           const token = getToken?.();
           return token ? { authorization: `Bearer ${token}` } : {};

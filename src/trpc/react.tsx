@@ -1,48 +1,42 @@
-import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
-import {
-  loggerLink,
-  splitLink,
-  httpBatchStreamLink,
-  httpSubscriptionLink,
-  createTRPCClient,
-} from "@trpc/client";
-import { createTRPCContext } from "@trpc/tanstack-react-query";
+// src/trpc/react.tsx
 import { useState } from "react";
-import SuperJSON from "superjson";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { httpBatchLink, loggerLink } from "@trpc/client";
+import { createTRPCReact } from "@trpc/react-query";
+import superjson from "superjson";
 
-import { AppRouter } from "~/server/trpc/root";
+import type { AppRouter } from "~/server/trpc/root";
 import { getQueryClient } from "./query-client";
 
-const { TRPCProvider, useTRPC, useTRPCClient } = createTRPCContext<AppRouter>();
+export const trpc = createTRPCReact<AppRouter>();
 
-export { useTRPC, useTRPCClient };
+// Back-compat helpers (optional)
+export const useTRPC = () => trpc.useUtils();
+export const useTRPCClient = () => trpc.useContext().client;
 
 function getBaseUrl() {
-  if (typeof window !== "undefined") return window.location.origin;
-  return `http://localhost:3000`;
+  // In the browser, keep it relative so it hits the same origin
+  if (typeof window !== "undefined") return "";
+  // On Vercel server
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  // Local dev
+  return "http://localhost:3000";
 }
 
 export function TRPCReactProvider(props: { children: React.ReactNode }) {
   const queryClient = getQueryClient();
 
   const [trpcClient] = useState(() =>
-    createTRPCClient<AppRouter>({
+    trpc.createClient({
+      transformer: superjson,
       links: [
         loggerLink({
           enabled: (op) =>
             process.env.NODE_ENV === "development" ||
             (op.direction === "down" && op.result instanceof Error),
         }),
-        splitLink({
-          condition: (op) => op.type === "subscription",
-          false: httpBatchStreamLink({
-            transformer: SuperJSON,
-            url: getBaseUrl() + "/trpc",
-          }),
-          true: httpSubscriptionLink({
-            transformer: SuperJSON,
-            url: getBaseUrl() + "/trpc",
-          }),
+        httpBatchLink({
+          url: `${getBaseUrl()}/trpc`,
         }),
       ],
     }),
@@ -50,9 +44,9 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
+      <trpc.Provider client={trpcClient} queryClient={queryClient}>
         {props.children}
-      </TRPCProvider>
+      </trpc.Provider>
     </QueryClientProvider>
   );
 }
