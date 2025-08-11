@@ -11,6 +11,7 @@
     "postinstall": "prisma generate",
     "dev": "vinxi dev",
     "build": "prisma generate && vinxi build",
+    "prevercel-build": "node -e \"require('fs').mkdirSync('src/generated', { recursive: true })\"",
     "vercel-build": "prisma generate && vinxi build",
     "start": "vinxi preview",
     "typecheck": "tsc --noEmit",
