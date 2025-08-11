@@ -3,13 +3,15 @@ import { createApp } from "vinxi";
 import react from "@vitejs/plugin-react";
 import tsconfigPaths from "vite-tsconfig-paths";
 import TanStackRouterVite from "@tanstack/router-plugin/vite";
-import { config } from "vinxi/plugins/config";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
+import { vite } from "vinxi/plugins/vite"; // ✅ correct vinxi Vite plugin
+
+// (Optional) If you have env helper, pull from there; otherwise remove this.
 import { env } from "./src/server/env";
 
-// Build "allowedHosts" from env for local/dev previews
 function allowedHostsFromEnv(): string[] {
-  return (env.ALLOWED_HOSTS ?? "")
+  const v = (env as any)?.ALLOWED_HOSTS ?? process.env.ALLOWED_HOSTS ?? "";
+  return String(v)
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
@@ -17,12 +19,10 @@ function allowedHostsFromEnv(): string[] {
 
 export default createApp({
   server: {
-    // Important for Vercel builds
     preset: "vercel",
   },
-
   routers: [
-    // --- API: tRPC ---
+    // --- tRPC API ---
     {
       name: "trpc",
       mode: "http",
@@ -31,7 +31,7 @@ export default createApp({
       handler: "./src/server/trpc/handler.ts",
     },
 
-    // --- API: Client log forwarding (optional) ---
+    // --- Client logs (optional) ---
     {
       name: "debug-logs",
       mode: "http",
@@ -40,7 +40,7 @@ export default createApp({
       handler: "./src/server/debug/client-logs-handler.ts",
     },
 
-    // --- Client app (SPA) ---
+    // --- Client (SPA) ---
     {
       name: "client",
       mode: "spa",
@@ -48,48 +48,36 @@ export default createApp({
       target: "browser",
       handler: "./src/main.tsx",
       plugins: [
-        config.vite({
-          appRoot: "src",
-
-          // Vite plugins
-          plugins: [
-            react(),
-            // Use TS path aliases (e.g. "~/*" -> "src/*")
-            tsconfigPaths(),
-            // TanStack Router codegen during the build
-            TanStackRouterVite({
-              routesDirectory: "src/routes",
-              generatedRouteTree: "src/generated/tanstack-router/routeTree.gen.ts",
-              autoCodeSplitting: true,
-            }),
-            // Node core polyfills needed by some libs (e.g. minio)
-            nodePolyfills(),
-          ],
-
-          // Extra safety: make "~/" alias explicit for Vite as well
+        vite({
+          // Let Vite resolve "~" and "~/"
           resolve: {
             alias: {
+              "~": "/src",
               "~/": "/src/",
             },
           },
-
-          // Allow local hostnames from env (for dev preview proxies, etc.)
-          server: {
-            allowedHosts: allowedHostsFromEnv(),
-          },
-
+          plugins: [
+            react(),
+            tsconfigPaths(),
+            TanStackRouterVite({
+              routesDirectory: "src/routes",
+              generatedRouteTree:
+                "src/generated/tanstack-router/routeTree.gen.ts",
+              autoCodeSplitting: true,
+            }),
+            nodePolyfills(),
+          ],
           define: {
             "process.env.NODE_ENV": JSON.stringify(
               process.env.NODE_ENV ?? "production",
             ),
           },
-
-          // Helpful for DX; safe on Vercel
+          server: {
+            allowedHosts: allowedHostsFromEnv(),
+          },
           build: {
             sourcemap: true,
           },
-
-          // Speed up cold starts by pre-optimizing common deps
           optimizeDeps: {
             include: [
               "@tanstack/react-router",
