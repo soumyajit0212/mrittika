@@ -20,6 +20,7 @@ export default createApp({
     experimental: { asyncContext: true },
   },
   routers: [
+    // tRPC HTTP handler
     {
       type: "http",
       name: "trpc",
@@ -27,10 +28,13 @@ export default createApp({
       handler: "./src/server/trpc/handler.ts",
       target: "server",
       plugins: () => [
-        config("allowedHosts", { server: { allowedHosts: allowedHostsFromEnv() } } as any),
+        process.env.NODE_ENV !== "production" &&
+          (config("allowedHosts", { server: { allowedHosts: allowedHostsFromEnv() } }) as any),
         tsConfigPaths({ projects: ["./tsconfig.json"] }),
-      ],
+      ].filter(Boolean),
     },
+
+    // Client log forwarding (safe no-throw handler)
     {
       type: "http",
       name: "debug-logs",
@@ -38,23 +42,26 @@ export default createApp({
       handler: "./src/server/debug/client-logs-handler.ts",
       target: "server",
       plugins: () => [
-        config("allowedHosts", { server: { allowedHosts: allowedHostsFromEnv() } } as any),
+        process.env.NODE_ENV !== "production" &&
+          (config("allowedHosts", { server: { allowedHosts: allowedHostsFromEnv() } }) as any),
         tsConfigPaths({ projects: ["./tsconfig.json"] }),
-      ],
+      ].filter(Boolean),
     },
+
+    // SPA client
     {
       type: "spa",
       name: "client",
       handler: "./index.html",
       target: "browser",
       plugins: () => [
-        config("allowedHosts", { server: { allowedHosts: allowedHostsFromEnv() } } as any),
         tsConfigPaths({ projects: ["./tsconfig.json"] }),
         TanStackRouterVite({
           autoCodeSplitting: true,
           routesDirectory: "./src/routes",
           generatedRouteTree: "./src/generated/routeTree.gen.ts",
         }),
+        // Avoid resolving Node inspector in the browser
         {
           name: "disable-node-polyfills",
           config() {
@@ -72,9 +79,9 @@ export default createApp({
         react(),
         nodePolyfills(),
         consoleForwardPlugin({
-          enabled: true,
+          enabled: process.env.NODE_ENV !== "production",
           endpoint: "/api/debug/client-logs",
-          levels: ["log", "warn", "error", "info", "debug"],
+          levels: ["log", "warn", "error", "info"],
         }),
       ],
     },
