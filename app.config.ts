@@ -1,10 +1,11 @@
 // app.config.ts
 import react from "@vitejs/plugin-react";
 import tsconfigPaths from "vite-tsconfig-paths";
-import nodePolyfills from "vite-plugin-node-polyfills";
+import { nodePolyfills } from "vite-plugin-node-polyfills"; // ⬅️ named import
 import { routerPlugin } from "@tanstack/router-plugin";
 
-// We generate the route tree via CLI on Vercel, so disable the Vite plugin there.
+// We pre-generate the route tree on Vercel in `prevercel-build`, so
+// only run the router plugin locally (dev).
 const enableRouterPlugin =
   process.env.NODE_ENV !== "production" && !process.env.VERCEL;
 
@@ -29,7 +30,7 @@ const config = {
                 }),
               ]
             : []),
-          nodePolyfills(),
+          nodePolyfills(), // ⬅️ call the plugin
         ],
       },
     },
