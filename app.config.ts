@@ -1,14 +1,14 @@
 // app.config.ts
-import { defineConfig } from "vinxi";
 import react from "@vitejs/plugin-react";
 import tsconfigPaths from "vite-tsconfig-paths";
 import nodePolyfills from "vite-plugin-node-polyfills";
 import { routerPlugin } from "@tanstack/router-plugin";
 
-// On Vercel/production we generate via CLI (tsr generate), so disable the Vite plugin there.
-const enableRouterPlugin = process.env.NODE_ENV !== "production" && !process.env.VERCEL;
+// We generate the route tree via CLI on Vercel, so disable the Vite plugin there.
+const enableRouterPlugin =
+  process.env.NODE_ENV !== "production" && !process.env.VERCEL;
 
-export default defineConfig({
+const config = {
   routers: [
     {
       name: "client",
@@ -46,4 +46,6 @@ export default defineConfig({
       handler: "./src/server/debug/client-logs-handler.ts",
     },
   ],
-});
+};
+
+export default config;
