@@ -1,29 +1,15 @@
-// src/trpc/react.tsx
-import { useState } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink, loggerLink } from "@trpc/client";
-import { createTRPCReact } from "@trpc/react-query";
 import superjson from "superjson";
-
-import type { AppRouter } from "~/server/trpc/root";
-import { getQueryClient } from "./query-client";
-
-export const trpc = createTRPCReact<AppRouter>();
-
-// Back-compat helpers (optional)
-export const useTRPC = () => trpc.useUtils();
-export const useTRPCClient = () => trpc.useContext().client;
+// ...imports above...
 
 function getBaseUrl() {
-  // In the browser, keep it relative so it hits the same origin
-  if (typeof window !== "undefined") return "";
-  // On Vercel server
+  if (typeof window !== "undefined") return "";                 // same-origin in browser
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  // Local dev
   return "http://localhost:3000";
 }
 
-export function TRPCReactProvider(props: { children: React.ReactNode }) {
+export function TRPCReactProvider({ children }: { children: React.ReactNode }) {
   const queryClient = getQueryClient();
 
   const [trpcClient] = useState(() =>
@@ -45,7 +31,7 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
-        {props.children}
+        {children}
       </trpc.Provider>
     </QueryClientProvider>
   );
