@@ -7,9 +7,9 @@ import tsConfigPaths from "vite-tsconfig-paths";
 import react from "@vitejs/plugin-react";
 import { config } from "vinxi/plugins/config";
 import { env } from "./src/server/env";
-import { nodePolyfills } from "vite-plugin-node-polyfills";
-// keep the import — we’ll only add the plugin in dev
-import { consoleForwardPlugin } from "./vite-console-forward-plugin";
+
+// Detect prod once (works on Vercel)
+const isProd = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
 
 function allowedHostsFromEnv() {
   const hosts = [env.BASE_URL, env.BASE_URL_OTHER_PORT].filter(Boolean) as string[];
@@ -54,42 +54,52 @@ export default createApp({
       name: "client",
       handler: "./index.html",
       target: "browser",
-      plugins: () => [
-        config("allowedHosts", { server: { allowedHosts: allowedHostsFromEnv() } } as any),
-        tsConfigPaths({ projects: ["./tsconfig.json"] }),
-        TanStackRouterVite({
-          autoCodeSplitting: true,
-          routesDirectory: "./src/routes",
-          generatedRouteTree: "./src/generated/routeTree.gen.ts",
-        }),
-        {
-          name: "disable-node-polyfills",
-          config() {
-            return {
-              optimizeDeps: { exclude: ["node:inspector", "inspector"] },
-              resolve: {
-                alias: {
-                  "node:inspector": "unenv/mock/empty",
-                  inspector: "unenv/mock/empty",
+      plugins: () => {
+        const base = [
+          config("allowedHosts", { server: { allowedHosts: allowedHostsFromEnv() } } as any),
+          tsConfigPaths({ projects: ["./tsconfig.json"] }),
+          TanStackRouterVite({
+            autoCodeSplitting: true,
+            routesDirectory: "./src/routes",
+            generatedRouteTree: "./src/generated/routeTree.gen.ts",
+          }),
+          // keep inspector stubs to avoid bundling it
+          {
+            name: "disable-node-inspector",
+            config() {
+              return {
+                optimizeDeps: { exclude: ["node:inspector", "inspector"] },
+                resolve: {
+                  alias: {
+                    "node:inspector": "unenv/mock/empty",
+                    inspector: "unenv/mock/empty",
+                  },
                 },
-              },
-            };
-          },
-        } as any,
-        react(),
-        nodePolyfills(),
+              };
+            },
+          } as any,
+          react(),
+        ];
 
-        // ⬇️ Add the console forwarder ONLY in development to avoid prod crashes
-        ...(process.env.NODE_ENV !== "production"
-          ? [
-              consoleForwardPlugin({
-                enabled: true,
-                endpoint: "/api/debug/client-logs",
-                levels: ["log", "info", "warn", "error"], // keep it simple in dev
-              }),
-            ]
-          : []),
-      ],
+        // ✅ Only add debug/patch plugins in dev
+        if (!isProd) {
+          // require() so they are not even resolved in prod builds
+          const { consoleForwardPlugin } = require("./vite-console-forward-plugin");
+          base.push(
+            consoleForwardPlugin({
+              enabled: true,
+              endpoint: "/api/debug/client-logs",
+              levels: ["log", "info", "warn", "error", "debug"],
+            })
+          );
+
+          // Optional: node polyfills only in dev (avoid in prod)
+          const { nodePolyfills } = require("vite-plugin-node-polyfills");
+          base.push(nodePolyfills());
+        }
+
+        return base;
+      },
     },
   ],
 });
