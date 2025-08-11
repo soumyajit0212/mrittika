@@ -1,14 +1,14 @@
 // app.config.ts
+import { defineApp } from "vinxi/app";
 import react from "@vitejs/plugin-react";
 import tsconfigPaths from "vite-tsconfig-paths";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 
-// Only run the router plugin locally (we pre-generate on Vercel)
-const enableRouterPlugin =
-  process.env.NODE_ENV !== "production" && !process.env.VERCEL;
+// Only run the router generator locally; on Vercel we pre-generate via `tsr generate`.
+const enableRouterPlugin = !process.env.VERCEL && process.env.NODE_ENV !== "production";
 
-const config = {
+export default defineApp({
   routers: [
     {
       name: "client",
@@ -46,6 +46,4 @@ const config = {
       handler: "./src/server/debug/client-logs-handler.ts",
     },
   ],
-};
-
-export default config;
+});
