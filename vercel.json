@@ -1,10 +1,7 @@
 {
-  "build": {
-    "env": {
-      "NODE_VERSION": "20"
-    }
-  },
-  "installCommand": "corepack enable && corepack prepare pnpm@9.12.3 --activate && node -v && corepack pnpm -v && corepack pnpm install --no-frozen-lockfile",
-  "buildCommand": "corepack pnpm build",
-  "framework": "vite"
+  "buildCommand": "pnpm build",
+  "installCommand": "pnpm install",
+  "rewrites": [
+    { "source": "/trpc/:path*", "destination": "/api/trpc/:path*" }
+  ]
 }
