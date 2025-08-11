@@ -7,7 +7,7 @@
     "node": "20.x"
   },
   "scripts": {
-    "prebuild": "node -e \"require('fs').mkdirSync('src/generated/tanstack-router',{recursive:true})\" && tsr generate || true",
+    "prebuild": "node -e \"require('fs').mkdirSync('src/generated', { recursive: true })\" && tsr generate || true",
     "postinstall": "prisma generate",
     "dev": "vinxi dev",
     "build": "prisma generate && vinxi build",
