@@ -1,7 +1,10 @@
 {
   "buildCommand": "pnpm build",
-  "installCommand": "pnpm install",
-  "rewrites": [
-    { "source": "/trpc/:path*", "destination": "/api/trpc/:path*" }
-  ]
+  "installCommand": "pnpm install --no-frozen-lockfile",
+  "functions": {
+    "api/**/*.js": {
+      "memory": 1024,
+      "maxDuration": 60
+    }
+  }
 }
