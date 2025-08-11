@@ -4,6 +4,7 @@ import { createApp } from "vinxi";
 import reactRefresh from "@vitejs/plugin-react";
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 import tsConfigPaths from "vite-tsconfig-paths";
+import react from '@vitejs/plugin-react';
 import { config } from "vinxi/plugins/config";
 import { env } from "./src/server/env";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
