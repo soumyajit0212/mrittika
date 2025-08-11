@@ -13,15 +13,20 @@
     "esModuleInterop": true,
     "jsx": "react-jsx",
     "target": "ESNext",
+    "module": "ESNext",
     "moduleResolution": "Bundler",
+    "verbatimModuleSyntax": true,
     "skipLibCheck": true,
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
     "allowJs": true,
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {
-      "~/*": ["./src/*"]
+      "~/*": ["src/*"],
+      "@/*": ["src/*"]
     },
+    "types": ["vite/client"],
+    "resolveJsonModule": true,
     "noEmit": true
   }
 }
