@@ -9,7 +9,7 @@
     "postinstall": "node -e \"console.log('skip prisma generate on Vercel')\"",
     "dev": "vinxi dev",
     "build": "vinxi build",
-    "start": "node .vinxi/server/index.mjs",
+    "start": "vinxi preview",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . -c eslint.config.mjs --max-warnings 0",
     "db:generate": "prisma migrate dev",
