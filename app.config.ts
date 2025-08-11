@@ -16,7 +16,7 @@ function allowedHostsFromEnv() {
 
 export default createApp({
   server: {
-    preset: "node-server",
+    preset: "vercel",
     experimental: { asyncContext: true },
   },
   routers: [
