@@ -5,10 +5,11 @@
     "node": "20.x"
   },
   "scripts": {
-    "postinstall": "prisma generate && tsr generate",
+    "prebuild": "tsr generate || true",
+    "postinstall": "node -e \"console.log('skip prisma generate on Vercel')\"",
     "dev": "vinxi dev",
     "build": "vinxi build",
-    "start": "vinxi start",
+    "start": "node .vinxi/server/index.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . -c eslint.config.mjs --max-warnings 0",
     "db:generate": "prisma migrate dev",
