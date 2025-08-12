@@ -33,7 +33,7 @@
     "bcryptjs": "^3.0.2",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.532.0",
-    "unenv": "^2.0.0",
+    "unenv": "2.0.0-rc.11",
     "minio": "^8.0.5",
     "postcss": "^8.5.1",
     "react": "^19.0.0",
@@ -51,10 +51,15 @@
   },
   "pnpm": {
     "overrides": {
-      "unenv": "^2.0.0",
+      "unenv": "2.0.0-rc.11",
       "h3": "^1.13.1",
       "nitro": "^2.9.0"
     }
+  },
+  "overrides": {
+    "unenv": "2.0.0-rc.11",
+    "h3": "1.13.1",
+    "nitro": "2.9.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.1",
