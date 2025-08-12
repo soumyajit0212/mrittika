@@ -29,7 +29,7 @@ function RootComponent() {
       <div className="min-h-screen bg-gray-50">
         <Outlet />
       </div>
-      <Toaster 
+      <Toaster
         position="top-right"
         toastOptions={{
           duration: 4000,
