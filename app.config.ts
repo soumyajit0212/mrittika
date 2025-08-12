@@ -4,7 +4,7 @@ import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 import tsConfigPaths from "vite-tsconfig-paths";
 import { config } from "vinxi/plugins/config";
 import { env } from "./src/server/env";
-import { nodePolyfills } from "vite-plugin-node-polyfills";
+//import { nodePolyfills } from "vite-plugin-node-polyfills";
 import { consoleForwardPlugin } from "./vite-console-forward-plugin";
 import { fixPrismaDotPrismaImport } from "./fix-prisma-dotprisma-plugin";
 
@@ -91,7 +91,6 @@ export default createApp({
           generatedRouteTree: "./src/generated/routeTree.gen.ts",
         }),
         reactRefresh(),
-        nodePolyfills(),
         consoleForwardPlugin({
           enabled: true,
           endpoint: "/api/debug/client-logs",
