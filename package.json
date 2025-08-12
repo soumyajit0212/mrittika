@@ -5,7 +5,8 @@
   "scripts": {
     "postinstall": "prisma generate && node -e \"require('fs').mkdirSync('src/generated/tanstack-router',{recursive:true})\" && tsr generate",
     "dev": "vinxi dev",
-    "build": "vinxi build",
+    "build": "npm run codegen && vite build",
+    "codegen": "prisma generate && node -e \"require('fs').mkdirSync('src/generated/tanstack-router',{recursive:true})\" && tsr generate",
     "start": "vinxi start",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . -c eslint.config.mjs --max-warnings 0",
