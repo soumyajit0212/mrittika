@@ -31,7 +31,7 @@
     "bcryptjs": "^3.0.2",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.532.0",
-    "unenv": "^1.10.0",
+    "unenv": "2.0.0-rc.11",
     "minio": "^8.0.5",
     "postcss": "^8.5.1",
     "react": "^19.0.0",
@@ -49,7 +49,7 @@
   },
   "pnpm": {
     "overrides": {
-      "unenv": "1.10.0"
+      "unenv": "2.0.0-rc.11"
     }
   },
   "devDependencies": {
