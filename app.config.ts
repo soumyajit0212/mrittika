@@ -1,51 +1,103 @@
 import { createApp } from "vinxi";
-import react from "@vitejs/plugin-react";
-import tsconfigPaths from "vite-tsconfig-paths";
+import reactRefresh from "@vitejs/plugin-react";
+import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
+import tsConfigPaths from "vite-tsconfig-paths";
+import { config } from "vinxi/plugins/config";
+import { env } from "./src/server/env";
+import { nodePolyfills } from "vite-plugin-node-polyfills";
+import { consoleForwardPlugin } from "./vite-console-forward-plugin";
+import { fixPrismaDotPrismaImport } from "./fix-prisma-dotprisma-plugin";
 
 export default createApp({
-  // Do NOT put a top-level `vite` or `plugins` here
+  server: {
+    preset: process.env.VERCEL ? "vercel" : "node-server", // change to 'netlify' or 'bun' or anyof the supported presets for nitro (nitro.unjs.io)
+    experimental: {
+      asyncContext: true,
+      nitro: {
+      externals: {
+        inline: ["@prisma/client", "prisma"], // make Prisma work in serverless
+      },
+    },
+    },
+  },
   routers: [
-    // --- APIs (HTTP routers need a handler) ---
     {
-      name: "trpc",
-      type: "http",
-      base: "/api/trpc",
-      handler: "./src/server/trpc/handler.ts",
+      type: "static",
+      name: "public",
+      dir: "./public",
     },
     {
-      name: "debug-logs",
       type: "http",
+      name: "trpc",
+      base: "/trpc",
+      handler: "./src/server/trpc/handler.ts",
+      target: "server",
+      plugins: () => [
+        config("allowedHosts", {
+          // @ts-ignore
+          server: {
+            allowedHosts: env.BASE_URL
+              ? [env.BASE_URL.split("://")[1]]
+              : undefined,
+          },
+        }),
+        tsConfigPaths({
+          projects: ["./tsconfig.json"],
+        }),
+      ],
+    },
+    {
+      type: "http",
+      name: "debug",
       base: "/api/debug/client-logs",
       handler: "./src/server/debug/client-logs-handler.ts",
-    },
-
-    // --- Client (SPA router: entry, NO handler) ---
-    {
-      name: "client",
-      type: "spa",
-      base: "/",
-      entry: "./src/main.tsx",
+      target: "server",
       plugins: () => [
-        tsconfigPaths(), // resolves "~/*" per your tsconfig
-        react(),
+        config("allowedHosts", {
+          // @ts-ignore
+          server: {
+            allowedHosts: env.BASE_URL
+              ? [env.BASE_URL.split("://")[1]]
+              : undefined,
+          },
+        }),
+        tsConfigPaths({
+          projects: ["./tsconfig.json"],
+        }),
       ],
-      vite: {
-        // Fallback in case alias resolution is flaky
-        resolve: {
-          alias: { "~": "/src" },
-        },
-        build: { sourcemap: true },
-        optimizeDeps: {
-          include: [
-            "@tanstack/react-query",
-            "@tanstack/react-router",
-            "@trpc/client",
-            "@trpc/react-query",
-            "superjson",
-          ],
-        },
-        define: { "process.env": {} },
-      },
+    },
+    {
+      type: "spa",
+      name: "client",
+      handler: "./index.html",
+      target: "browser",
+      plugins: () => [
+        fixPrismaDotPrismaImport(),
+        config("allowedHosts", {
+          // @ts-ignore
+          server: {
+            allowedHosts: env.BASE_URL
+              ? [env.BASE_URL.split("://")[1]]
+              : undefined,
+          },
+        }),
+        tsConfigPaths({
+          projects: ["./tsconfig.json"],
+        }),
+        TanStackRouterVite({
+          target: "react",
+          autoCodeSplitting: true,
+          routesDirectory: "./src/routes",
+          generatedRouteTree: "./src/generated/routeTree.gen.ts",
+        }),
+        reactRefresh(),
+        nodePolyfills(),
+        consoleForwardPlugin({
+          enabled: true,
+          endpoint: "/api/debug/client-logs",
+          levels: ["log", "warn", "error", "info", "debug"],
+        }),
+      ],
     },
   ],
 });

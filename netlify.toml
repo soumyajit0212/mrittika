@@ -1,8 +1,0 @@
-[build]
-  command = "pnpm build"
-  # If you're using Vinxi's Netlify preset, the build output will be wired up for functions automatically.
-  # These are safe defaults:
-  publish = "dist"
-
-[functions]
-  node_bundler = "esbuild"

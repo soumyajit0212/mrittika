@@ -141,7 +141,7 @@ function Home() {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center mb-6">
           <img
-            src="/mrittika.png"
+            src="https://iili.io/FQqzADQ.png"
             alt="Mrittika Canada Logo"
             className="h-20 w-auto"
           />

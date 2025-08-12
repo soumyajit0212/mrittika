@@ -1,41 +1,27 @@
 {
-  "extends": ["@tsconfig/strictest/tsconfig.json"],
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.mjs",
+    "**/*.cjs",
+    "**/*.js",
+    "**/*.jsx"
+  ],
   "compilerOptions": {
-    "target": "ES2022",
-    "lib": ["ES2023", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "jsx": "react-jsx",
-    "jsxImportSource": "react",
-
-    "verbatimModuleSyntax": true,
+    "strict": true,
     "noUncheckedIndexedAccess": true,
-    "noImplicitOverride": true,
-    "exactOptionalPropertyTypes": true,
-
-    "allowJs": false,
+    "esModuleInterop": true,
+    "jsx": "react-jsx",
+    "target": "ESNext",
+    "moduleResolution": "Bundler",
     "skipLibCheck": true,
-    "noEmit": true,
-    "tsBuildInfoFile": ".tsbuildinfo",
-    "outDir": "dist",
-
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "allowJs": true,
+    "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {
-      "~/*": ["./src/*"],
-      "@/*": ["./src/*"]
+      "~/*": ["./src/*"]
     },
-
-    "types": ["vite/client", "vinxi/types"]
-  },
-  "include": [
-    "src",
-    "client",
-    "server",
-    "vite.config.ts",
-    "app.config.ts",
-    "tailwind.config.mjs",
-    "postcss.config.mjs",
-    "eslint.config.js"
-  ],
-  "exclude": ["node_modules", "dist"]
+    "noEmit": true
+  }
 }

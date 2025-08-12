@@ -1,16 +1,22 @@
+/// <reference types="vinxi/types/client" />
+
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { RouterProvider } from "@tanstack/react-router";
-import { createRouter } from "./router";
-import { TRPCProvider } from "./trpc/react";
+
 import "./styles.css";
 
+import { createRouter } from "./router";
+
+// Set up a Router instance
 const router = createRouter();
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <TRPCProvider>
+const rootElement = document.getElementById("root")!;
+if (!rootElement.innerHTML) {
+  const root = ReactDOM.createRoot(rootElement);
+  root.render(
+    <React.StrictMode>
       <RouterProvider router={router} />
-    </TRPCProvider>
-  </React.StrictMode>
-);
+    </React.StrictMode>,
+  );
+}
