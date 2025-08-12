@@ -1,5 +1,7 @@
 {
   "name": "first-project",
+  "engines": { "node": "20.x" },
+  "packageManager": "pnpm@9.12.3",
   "scripts": {
     "postinstall": "prisma generate && node -e \"require('fs').mkdirSync('src/generated/tanstack-router',{recursive:true})\" && tsr generate",
     "dev": "vinxi dev",
