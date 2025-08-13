@@ -1,0 +1,99 @@
+--- a/api/trpc/[trpc].ts
++++ b/api/trpc/[trpc].ts
+@@ -1,24 +1,29 @@
+-// api/trpc/[trpc].ts
++import { createHTTPHandler } from '@trpc/server/adapters/standalone'
+ import type { VercelRequest, VercelResponse } from '@vercel/node'
+-import { createHTTPHandler } from '@trpc/server/adapters/standalone'
++import { appRouter } from '~/server/trpc/root'
++import { createTRPCContext } from '~/server/trpc/context'
+ 
+-// ⬇️ Adjust these two imports to match where your router/context live.
+-// Common locations are: src/server/router, src/server/trpc, src/trpc, etc.
+-import { appRouter } from '../../src/server/router'
+-import { createContext } from '../../src/server/context'
++// Ensure Node runtime on Vercel
++export const config = { runtime: 'nodejs20.x' }
+ 
+-// tRPC handler for Node HTTP-style req/res (works on Vercel Node functions)
++// Important: set endpoint to match deployment path "/api/trpc"
+ const handler = createHTTPHandler({
+   router: appRouter,
+-  // If your createContext expects ({ req, res }) this will satisfy it.
+-  // If your context is different, adapt this accordingly.
+-  createContext: (opts) => createContext({ req: opts.req, res: opts.res }),
+-  onError({ error, path }) {
+-    console.error('tRPC error on path', path, error)
++  createContext: createTRPCContext,
++  endpoint: '/api/trpc',
++  // optional: see errors in logs
++  onError: ({ path, error }) => {
++    console.error('tRPC error on', path, error)
+   },
+ })
+ 
+-export default (req: VercelRequest, res: VercelResponse) => {
+-  // Important: do NOT export any "config.runtime" here; we’ll set runtime in vercel.json
+-  return handler(req, res)
++export default function vercelHandler(req: VercelRequest, res: VercelResponse) {
++  // Allow CORS preflight if you ever call cross-origin
++  if (req.method === 'OPTIONS') {
++    res.setHeader('Access-Control-Allow-Origin', '*')
++    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
++    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
++    return res.status(204).send('')
++  }
++  return handler(req as any, res as any)
+ }
+--- a/src/lib/trpc/react.tsx
++++ b/src/lib/trpc/react.tsx
+@@ -0,0 +1,21 @@
++'use client'
++import { createTRPCReact } from '@trpc/react-query'
++import type { AppRouter } from '~/server/trpc/root'
++import { httpBatchLink, loggerLink } from '@trpc/client'
++
++export const trpc = createTRPCReact<AppRouter>()
++
++export function getTrpcLinks() {
++  return [
++    loggerLink({
++      enabled: (op) =>
++        process.env.NODE_ENV === 'development' ||
++        (op.direction === 'down' && op.result instanceof Error),
++    }),
++    httpBatchLink({
++      url: '/api/trpc',
++      // If you need credentials/cookies for auth:
++      // fetch(url, options) { return fetch(url, { ...options, credentials: 'include' }) }
++    }),
++  ]
++}
+--- a/vercel.json
++++ b/vercel.json
+@@ -1,13 +1,17 @@
+ {
+-  "installCommand": "npm ci",
+-  "buildCommand": "npm run build",
++  // Vercel config for Vite + TanStack Router SPA with tRPC API routes
+   "functions": {
+-    "api/**/*": {
+-      "runtime": "nodejs20.x"
++    "api/trpc/[trpc].ts": {
++      "runtime": "nodejs20.x",
++      "maxDuration": 10
+     }
+   },
+-  "routes": [
+-    { "handle": "filesystem" },
+-    { "src": "/(.*)", "dest": "/index.html" }
+-  ]
++  "installCommand": "npm ci --ignore-scripts=false",
++  "buildCommand": "npm run build",
++  "outputDirectory": "dist",
++  "rewrites": [
++    // Let the SPA handle client-side routes; keep /api/* handled by serverless functions
++    { "source": "/((?!api/).*)", "destination": "/" }
++  ],
++  "cleanUrls": true
+ }
