@@ -37,11 +37,11 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
           condition: (op) => op.type === "subscription",
           false: httpBatchStreamLink({
             transformer: SuperJSON,
-            url: getBaseUrl() + "/api/trpc",
+            url: getBaseUrl() + "/trpc",
           }),
           true: httpSubscriptionLink({
             transformer: SuperJSON,
-            url: getBaseUrl() + "/api/trpc",
+            url: getBaseUrl() + "/trpc",
           }),
         }),
       ],

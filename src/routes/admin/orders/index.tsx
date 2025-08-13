@@ -8,14 +8,14 @@ import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import toast from "react-hot-toast";
-import { 
-  Edit, 
-  Trash2, 
-  X, 
-  DollarSign, 
-  User, 
-  Calendar, 
-  Package, 
+import {
+  Edit,
+  Trash2,
+  X,
+  DollarSign,
+  User,
+  Calendar,
+  Package,
   AlertTriangle,
   Download,
   Search,
@@ -72,9 +72,9 @@ const getStatusBadge = (status: string) => {
     COMPLETED: { color: "bg-green-100 text-green-800", label: "Completed" },
     REFUNDED: { color: "bg-gray-100 text-gray-800", label: "Refunded" },
   };
-  
+
   const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.PENDING;
-  
+
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}>
       {config.label}
@@ -180,7 +180,7 @@ function RegistrationManagementPage() {
 
   const calculateTotalFromOrderLines = useCallback(() => {
     if (!watchedOrderLines || !productsQuery.data) return 0;
-    
+
     return watchedOrderLines.reduce((total, line) => {
       if (line.quantity > 0 && line.productTypeId) {
         const product = productsQuery.data?.find(p => p.id === line.productId);
@@ -205,7 +205,7 @@ function RegistrationManagementPage() {
   useEffect(() => {
     if (exportQuery.isSuccess && exportQuery.data) {
       const data = exportQuery.data;
-      
+
       // Convert data to CSV format
       const csvContent = [
         data.headers.join(','),
@@ -222,12 +222,12 @@ function RegistrationManagementPage() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       toast.success("Registration export completed successfully");
       setShowExportModal(false);
       setExportParams(null);
     }
-    
+
     if (exportQuery.isError) {
       toast.error(exportQuery.error?.message || "Export failed");
       setExportParams(null);
@@ -247,7 +247,7 @@ function RegistrationManagementPage() {
     // Search filter
     if (filterValues.search) {
       const searchTerm = filterValues.search.toLowerCase();
-      filtered = filtered.filter(order => 
+      filtered = filtered.filter(order =>
         (order.guest?.guestName?.toLowerCase().includes(searchTerm)) ||
         (order.member?.memberName?.toLowerCase().includes(searchTerm)) ||
         (order.guest?.guestEmail?.toLowerCase().includes(searchTerm)) ||
@@ -297,7 +297,7 @@ function RegistrationManagementPage() {
     setEditingOrder(order);
     setValue("totalCost", order.totalCost);
     setValue("status", order.status || "PENDING");
-    
+
     // Initialize order lines
     const initialOrderLines = order.orderLines.map((line: any) => ({
       productId: line.productId,
@@ -305,7 +305,7 @@ function RegistrationManagementPage() {
       quantity: line.quantity,
       sessionId: line.sessionId || undefined,
     }));
-    
+
     replaceOrderLines(initialOrderLines);
     setIsModalOpen(true);
   };
@@ -447,7 +447,7 @@ function RegistrationManagementPage() {
                 Clear Filters
               </button>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Search</label>
@@ -597,9 +597,9 @@ function RegistrationManagementPage() {
                                 <div>Elders: {order.guest?.elder || order.member?.elder || 0}</div>
                               </div>
                               <div className="mt-1 text-sm font-medium text-gray-900">
-                                Total: {(order.guest?.adults || order.member?.adults || 0) + 
-                                        (order.guest?.children || order.member?.children || 0) + 
-                                        (order.guest?.infants || order.member?.infants || 0) + 
+                                Total: {(order.guest?.adults || order.member?.adults || 0) +
+                                        (order.guest?.children || order.member?.children || 0) +
+                                        (order.guest?.infants || order.member?.infants || 0) +
                                         (order.guest?.elder || order.member?.elder || 0)} people
                               </div>
                             </div>
@@ -630,7 +630,7 @@ function RegistrationManagementPage() {
                                       <span className="font-medium">{line.product.productName}</span>
                                       {line.productType && (
                                         <div className="text-xs text-gray-500 mt-1">
-                                          {line.productType.productSize} • 
+                                          {line.productType.productSize} •
                                           {line.productType.productChoice !== 'NONE' && ` ${line.productType.productChoice} •`}
                                           {line.productType.productPref !== 'NONE' && ` ${line.productType.productPref} •`}
                                           {line.productType.productSubtype !== 'NONE' && ` ${line.productType.productSubtype}`}
@@ -653,7 +653,7 @@ function RegistrationManagementPage() {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center space-x-2 ml-4">
                       <button
                         onClick={() => openEditModal(order)}
@@ -755,7 +755,7 @@ function RegistrationManagementPage() {
                       Add Item
                     </button>
                   </div>
-                  
+
                   <div className="space-y-3 max-h-60 overflow-y-auto">
                     {orderLineFields.map((field, index) => (
                       <div key={field.id} className="border border-gray-200 rounded-lg p-3">
@@ -855,7 +855,7 @@ function RegistrationManagementPage() {
                       </div>
                     ))}
                   </div>
-                  
+
                   {errors.orderLines && (
                     <p className="mt-1 text-sm text-red-600">{errors.orderLines.message}</p>
                   )}
@@ -954,7 +954,7 @@ function RegistrationManagementPage() {
 
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                   <p className="text-sm text-blue-800">
-                    <strong>Export includes:</strong> Registration details, contact information, 
+                    <strong>Export includes:</strong> Registration details, contact information,
                     family details, session information, product selections, and pricing data.
                   </p>
                 </div>

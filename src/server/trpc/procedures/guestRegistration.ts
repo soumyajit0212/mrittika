@@ -58,7 +58,7 @@ export const guestRegistration = baseProcedure
     const sessionIds = input.sessionSelections.map(s => s.sessionId);
     const validSessionIds = event.sessions.map(s => s.id);
     const invalidSessions = sessionIds.filter(id => !validSessionIds.includes(id));
-    
+
     if (invalidSessions.length > 0) {
       throw new TRPCError({
         code: "BAD_REQUEST",
@@ -66,55 +66,66 @@ export const guestRegistration = baseProcedure
       });
     }
 
-    // Validate dine-in rules for all sessions
+    // Validate food opt-out and dine-in rules per session
     for (const sessionSelection of input.sessionSelections) {
-      // Skip dine-in validation if opted out of food
       if (sessionSelection.optOutOfFood) {
-        console.log(`Guest registration: Session ${sessionSelection.sessionId} opted out of food, skipping dine-in validation`);
-        continue;
-      }
-      
-      // Validate dine-in meal selections for this session
-      // Group dine-in selections by person type for this session
-      const dineInSelectionsByPersonType: { [key: string]: number } = {};
-      
-      for (const productSelection of sessionSelection.productSelections) {
-        const productType = await db.productType.findUnique({
-          where: { id: productSelection.productTypeId },
-          include: { product: true }
-        });
-
-        if (!productType) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Product type not found",
+        // Check if any food products are selected when opted out for this session
+        for (const productSelection of sessionSelection.productSelections) {
+          const productType = await db.productType.findUnique({
+            where: { id: productSelection.productTypeId },
+            include: { product: true }
           });
-        }
 
-        // Group dine-in food selections by person type
-        if (productType.product.productType === 'Food' && productType.productSubtype === 'DINE-IN') {
-          const personType = productType.productSize;
-          if (!dineInSelectionsByPersonType[personType]) {
-            dineInSelectionsByPersonType[personType] = 0;
+          if (productType?.product.productType === 'Food') {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Cannot select food products when opted out of food for a session",
+            });
           }
-          dineInSelectionsByPersonType[personType] += productSelection.quantity;
         }
-      }
-      
-      // Validate that dine-in selections match person counts for this session
-      const personTypeCounts = {
-        Adult: input.adults,
-        Children: input.children,
-        Elder: input.elder
-      };
-      
-      for (const [personType, totalSelected] of Object.entries(dineInSelectionsByPersonType)) {
-        const requiredCount = personTypeCounts[personType as keyof typeof personTypeCounts] || 0;
-        if (requiredCount > 0 && totalSelected !== requiredCount) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: `For dine-in meals, you must select exactly ${requiredCount} ${personType.toLowerCase()} meal(s) total per session. Currently selected: ${totalSelected} for ${personType} in session.`,
+      } else {
+        // Validate dine-in meal selections when not opted out for this session
+        // Group dine-in selections by person type for this session
+        const dineInSelectionsByPersonType: { [key: string]: number } = {};
+
+        for (const productSelection of sessionSelection.productSelections) {
+          const productType = await db.productType.findUnique({
+            where: { id: productSelection.productTypeId },
+            include: { product: true }
           });
+
+          if (!productType) {
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "Product type not found",
+            });
+          }
+
+          // Group dine-in food selections by person type
+          if (productType.product.productType === 'Food' && productType.productSubtype === 'DINE-IN') {
+            const personType = productType.productSize;
+            if (!dineInSelectionsByPersonType[personType]) {
+              dineInSelectionsByPersonType[personType] = 0;
+            }
+            dineInSelectionsByPersonType[personType] += productSelection.quantity;
+          }
+        }
+
+        // Validate that dine-in selections match person counts for this session
+        const personTypeCounts = {
+          Adult: input.adults,
+          Children: input.children,
+          Elder: input.elder
+        };
+
+        for (const [personType, totalSelected] of Object.entries(dineInSelectionsByPersonType)) {
+          const requiredCount = personTypeCounts[personType as keyof typeof personTypeCounts] || 0;
+          if (requiredCount > 0 && totalSelected !== requiredCount) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `For dine-in meals, you must select exactly ${requiredCount} ${personType.toLowerCase()} meal(s) total per session. Currently selected: ${totalSelected} for ${personType} in session.`,
+            });
+          }
         }
       }
     }
@@ -184,7 +195,7 @@ export const guestRegistration = baseProcedure
         }
 
         const lineTotal = productType.productPrice * productSelection.quantity;
-        
+
         // Separate costs by product type
         if (productType.product.productType === 'Entry') {
           entryCost += lineTotal;
@@ -207,7 +218,11 @@ export const guestRegistration = baseProcedure
     let finalEntryCost = entryCost;
     if (allSessionsSelected && entryCost > 0) {
       finalEntryCost = entryCost * 0.7; // 30% discount on entry only
-    }
+    } /*else if (sessionIds.length >= 4 && sessionIds.length < event.sessions.length && entryCost > 0){
+      finalEntryCost = entryCost * 0.8; // 20% discount on entry only
+    }else if (sessionIds.length >= 2 && sessionIds.length < 4 && entryCost > 0){
+      finalEntryCost = entryCost * 0.9; // 10% discount on entry only
+    }*/
 
     // Total cost is discounted entry cost + full food cost
     const totalCost = finalEntryCost + foodCost;
