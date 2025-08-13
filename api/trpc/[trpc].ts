@@ -1,24 +1,24 @@
 // api/trpc/[trpc].ts
-import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createHTTPHandler } from '@trpc/server/adapters/standalone'
+import { appRouter } from '../../src/server/trpc/router'      // <-- adjust if your router path differs
+import { createContext } from '../../src/server/trpc/context'  // <-- adjust if needed
 
-// ⬇️ Adjust these two imports to match where your router/context live.
-// Common locations are: src/server/router, src/server/trpc, src/trpc, etc.
-import { appRouter } from '../../src/server/router'
-import { createContext } from '../../src/server/context'
-
-// tRPC handler for Node HTTP-style req/res (works on Vercel Node functions)
 const handler = createHTTPHandler({
   router: appRouter,
-  // If your createContext expects ({ req, res }) this will satisfy it.
-  // If your context is different, adapt this accordingly.
-  createContext: (opts) => createContext({ req: opts.req, res: opts.res }),
-  onError({ error, path }) {
-    console.error('tRPC error on path', path, error)
-  },
+  createContext,
+  // This should match the deployed base path for the function:
+  // /api/trpc/<procedure>
+  endpoint: '/api/trpc',
 })
 
-export default (req: VercelRequest, res: VercelResponse) => {
-  // Important: do NOT export any "config.runtime" here; we’ll set runtime in vercel.json
+export default function vercelHandler(req: any, res: any) {
+  // Allow preflight on same path (helps prevent stray 405s)
+  if (req.method === 'OPTIONS') {
+    res.status(204)
+      .setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+      .setHeader('Access-Control-Allow-Headers', 'content-type')
+      .end()
+    return
+  }
   return handler(req, res)
 }
