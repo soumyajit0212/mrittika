@@ -1,7 +1,9 @@
 {
-  "functions": {
-    "api/**.{js,ts}": {
-      "runtime": "nodejs20.x"
-    }
-  }
+  "installCommand": "npm ci",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
+  ]
 }
