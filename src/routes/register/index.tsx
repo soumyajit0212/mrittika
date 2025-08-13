@@ -350,7 +350,7 @@ function GuestRegistrationPage() {
         {/* Logo Section */}
         <div className="text-center mb-8">
           <img
-            src="/mrittika.png"
+            src="https://iili.io/FQqzADQ.png"
             alt="Mrittika Canada Logo"
             className="h-16 w-auto mx-auto mb-4"
           />
@@ -916,36 +916,6 @@ function GuestRegistrationPage() {
               </div>
             )}
 
-            {/* Enhanced Debug Information */}
-            {/*process.env.NODE_ENV === 'development' && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-6">
-                <h3 className="text-sm font-medium text-yellow-800 mb-2">Guest Registration Debug Info:</h3>
-                <div className="text-xs text-yellow-700 space-y-1">
-                  <div>Total Cost: ${totalCost.toFixed(2)}</div>
-                  <div>Entry Cost: ${entryCost.toFixed(2)}</div>
-                  <div>Food Cost: ${foodCost.toFixed(2)}</div>
-                  <div>Discount Applied: {discountApplied ? 'Yes' : 'No'}</div>
-                  <div>Sessions Data Loaded: {sessionsQuery.data ? 'Yes' : 'No'}</div>
-                  <div>Products Data Loaded: {productsQuery.data ? 'Yes' : 'No'}</div>
-                  <div>Selected Sessions: {sessionSelections?.filter(s => s.selected).length || 0}</div>
-                  <div>Session Selections Length: {sessionSelections?.length || 0}</div>
-                  <div>Session Fields Length: {sessionFields.length}</div>
-                  <div>Button Disabled: {registrationMutation.isPending ? 'Yes' : 'No'}</div>
-                  <div>Mutation Pending: {registrationMutation.isPending ? 'Yes' : 'No'}</div>
-                  {sessionSelections?.map((session, idx) => (
-                    <div key={idx}>
-                      Session {idx}: Selected={session.selected ? 'Yes' : 'No'}, OptOut={session.optOutOfFood ? 'Yes' : 'No'}, Products={session.productSelections?.length || 0}
-                      {session.productSelections?.map((ps, psIdx) => (
-                        <div key={psIdx} className="ml-4 text-xs">
-                          Product {ps.productId}, Type {ps.productTypeId}, Qty: {ps.quantity}
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
- {/* End of Enhamcement */}
             <div className="flex justify-end">
               <button
                 type="submit"

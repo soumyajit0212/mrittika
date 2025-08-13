@@ -4,74 +4,174 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './../../routes/__root'
-import { Route as IndexRouteImport } from './../../routes/index'
-import { Route as RegisterIndexRouteImport } from './../../routes/register/index'
-import { Route as MemberRegisterIndexRouteImport } from './../../routes/member-register/index'
-import { Route as AdminVenuesIndexRouteImport } from './../../routes/admin/venues/index'
-import { Route as AdminUsersIndexRouteImport } from './../../routes/admin/users/index'
-import { Route as AdminSessionsIndexRouteImport } from './../../routes/admin/sessions/index'
-import { Route as AdminReportingIndexRouteImport } from './../../routes/admin/reporting/index'
-import { Route as AdminProductsIndexRouteImport } from './../../routes/admin/products/index'
-import { Route as AdminOrdersIndexRouteImport } from './../../routes/admin/orders/index'
-import { Route as AdminExpensesIndexRouteImport } from './../../routes/admin/expenses/index'
-import { Route as AdminEventsIndexRouteImport } from './../../routes/admin/events/index'
+// Import Routes
 
-const IndexRoute = IndexRouteImport.update({
+import { Route as rootRoute } from './../../routes/__root'
+import { Route as IndexImport } from './../../routes/index'
+import { Route as RegisterIndexImport } from './../../routes/register/index'
+import { Route as MemberRegisterIndexImport } from './../../routes/member-register/index'
+import { Route as AdminVenuesIndexImport } from './../../routes/admin/venues/index'
+import { Route as AdminUsersIndexImport } from './../../routes/admin/users/index'
+import { Route as AdminSessionsIndexImport } from './../../routes/admin/sessions/index'
+import { Route as AdminReportingIndexImport } from './../../routes/admin/reporting/index'
+import { Route as AdminProductsIndexImport } from './../../routes/admin/products/index'
+import { Route as AdminOrdersIndexImport } from './../../routes/admin/orders/index'
+import { Route as AdminExpensesIndexImport } from './../../routes/admin/expenses/index'
+import { Route as AdminEventsIndexImport } from './../../routes/admin/events/index'
+
+// Create/Update Routes
+
+const IndexRoute = IndexImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => rootRoute,
 } as any)
-const RegisterIndexRoute = RegisterIndexRouteImport.update({
+
+const RegisterIndexRoute = RegisterIndexImport.update({
   id: '/register/',
   path: '/register/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => rootRoute,
 } as any)
-const MemberRegisterIndexRoute = MemberRegisterIndexRouteImport.update({
+
+const MemberRegisterIndexRoute = MemberRegisterIndexImport.update({
   id: '/member-register/',
   path: '/member-register/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => rootRoute,
 } as any)
-const AdminVenuesIndexRoute = AdminVenuesIndexRouteImport.update({
+
+const AdminVenuesIndexRoute = AdminVenuesIndexImport.update({
   id: '/admin/venues/',
   path: '/admin/venues/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => rootRoute,
 } as any)
-const AdminUsersIndexRoute = AdminUsersIndexRouteImport.update({
+
+const AdminUsersIndexRoute = AdminUsersIndexImport.update({
   id: '/admin/users/',
   path: '/admin/users/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => rootRoute,
 } as any)
-const AdminSessionsIndexRoute = AdminSessionsIndexRouteImport.update({
+
+const AdminSessionsIndexRoute = AdminSessionsIndexImport.update({
   id: '/admin/sessions/',
   path: '/admin/sessions/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => rootRoute,
 } as any)
-const AdminReportingIndexRoute = AdminReportingIndexRouteImport.update({
+
+const AdminReportingIndexRoute = AdminReportingIndexImport.update({
   id: '/admin/reporting/',
   path: '/admin/reporting/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => rootRoute,
 } as any)
-const AdminProductsIndexRoute = AdminProductsIndexRouteImport.update({
+
+const AdminProductsIndexRoute = AdminProductsIndexImport.update({
   id: '/admin/products/',
   path: '/admin/products/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => rootRoute,
 } as any)
-const AdminOrdersIndexRoute = AdminOrdersIndexRouteImport.update({
+
+const AdminOrdersIndexRoute = AdminOrdersIndexImport.update({
   id: '/admin/orders/',
   path: '/admin/orders/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => rootRoute,
 } as any)
-const AdminExpensesIndexRoute = AdminExpensesIndexRouteImport.update({
+
+const AdminExpensesIndexRoute = AdminExpensesIndexImport.update({
   id: '/admin/expenses/',
   path: '/admin/expenses/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => rootRoute,
 } as any)
-const AdminEventsIndexRoute = AdminEventsIndexRouteImport.update({
+
+const AdminEventsIndexRoute = AdminEventsIndexImport.update({
   id: '/admin/events/',
   path: '/admin/events/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => rootRoute,
 } as any)
+
+// Populate the FileRoutesByPath interface
+
+declare module '@tanstack/react-router' {
+  interface FileRoutesByPath {
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexImport
+      parentRoute: typeof rootRoute
+    }
+    '/member-register/': {
+      id: '/member-register/'
+      path: '/member-register'
+      fullPath: '/member-register'
+      preLoaderRoute: typeof MemberRegisterIndexImport
+      parentRoute: typeof rootRoute
+    }
+    '/register/': {
+      id: '/register/'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterIndexImport
+      parentRoute: typeof rootRoute
+    }
+    '/admin/events/': {
+      id: '/admin/events/'
+      path: '/admin/events'
+      fullPath: '/admin/events'
+      preLoaderRoute: typeof AdminEventsIndexImport
+      parentRoute: typeof rootRoute
+    }
+    '/admin/expenses/': {
+      id: '/admin/expenses/'
+      path: '/admin/expenses'
+      fullPath: '/admin/expenses'
+      preLoaderRoute: typeof AdminExpensesIndexImport
+      parentRoute: typeof rootRoute
+    }
+    '/admin/orders/': {
+      id: '/admin/orders/'
+      path: '/admin/orders'
+      fullPath: '/admin/orders'
+      preLoaderRoute: typeof AdminOrdersIndexImport
+      parentRoute: typeof rootRoute
+    }
+    '/admin/products/': {
+      id: '/admin/products/'
+      path: '/admin/products'
+      fullPath: '/admin/products'
+      preLoaderRoute: typeof AdminProductsIndexImport
+      parentRoute: typeof rootRoute
+    }
+    '/admin/reporting/': {
+      id: '/admin/reporting/'
+      path: '/admin/reporting'
+      fullPath: '/admin/reporting'
+      preLoaderRoute: typeof AdminReportingIndexImport
+      parentRoute: typeof rootRoute
+    }
+    '/admin/sessions/': {
+      id: '/admin/sessions/'
+      path: '/admin/sessions'
+      fullPath: '/admin/sessions'
+      preLoaderRoute: typeof AdminSessionsIndexImport
+      parentRoute: typeof rootRoute
+    }
+    '/admin/users/': {
+      id: '/admin/users/'
+      path: '/admin/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersIndexImport
+      parentRoute: typeof rootRoute
+    }
+    '/admin/venues/': {
+      id: '/admin/venues/'
+      path: '/admin/venues'
+      fullPath: '/admin/venues'
+      preLoaderRoute: typeof AdminVenuesIndexImport
+      parentRoute: typeof rootRoute
+    }
+  }
+}
+
+// Create and export the route tree
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -86,6 +186,7 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof AdminUsersIndexRoute
   '/admin/venues': typeof AdminVenuesIndexRoute
 }
+
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/member-register': typeof MemberRegisterIndexRoute
@@ -99,8 +200,9 @@ export interface FileRoutesByTo {
   '/admin/users': typeof AdminUsersIndexRoute
   '/admin/venues': typeof AdminVenuesIndexRoute
 }
+
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport
+  __root__: typeof rootRoute
   '/': typeof IndexRoute
   '/member-register/': typeof MemberRegisterIndexRoute
   '/register/': typeof RegisterIndexRoute
@@ -113,6 +215,7 @@ export interface FileRoutesById {
   '/admin/users/': typeof AdminUsersIndexRoute
   '/admin/venues/': typeof AdminVenuesIndexRoute
 }
+
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
@@ -155,6 +258,7 @@ export interface FileRouteTypes {
     | '/admin/venues/'
   fileRoutesById: FileRoutesById
 }
+
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   MemberRegisterIndexRoute: typeof MemberRegisterIndexRoute
@@ -167,88 +271,6 @@ export interface RootRouteChildren {
   AdminSessionsIndexRoute: typeof AdminSessionsIndexRoute
   AdminUsersIndexRoute: typeof AdminUsersIndexRoute
   AdminVenuesIndexRoute: typeof AdminVenuesIndexRoute
-}
-
-declare module '@tanstack/react-router' {
-  interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/register/': {
-      id: '/register/'
-      path: '/register'
-      fullPath: '/register'
-      preLoaderRoute: typeof RegisterIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/member-register/': {
-      id: '/member-register/'
-      path: '/member-register'
-      fullPath: '/member-register'
-      preLoaderRoute: typeof MemberRegisterIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/venues/': {
-      id: '/admin/venues/'
-      path: '/admin/venues'
-      fullPath: '/admin/venues'
-      preLoaderRoute: typeof AdminVenuesIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/users/': {
-      id: '/admin/users/'
-      path: '/admin/users'
-      fullPath: '/admin/users'
-      preLoaderRoute: typeof AdminUsersIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/sessions/': {
-      id: '/admin/sessions/'
-      path: '/admin/sessions'
-      fullPath: '/admin/sessions'
-      preLoaderRoute: typeof AdminSessionsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/reporting/': {
-      id: '/admin/reporting/'
-      path: '/admin/reporting'
-      fullPath: '/admin/reporting'
-      preLoaderRoute: typeof AdminReportingIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/products/': {
-      id: '/admin/products/'
-      path: '/admin/products'
-      fullPath: '/admin/products'
-      preLoaderRoute: typeof AdminProductsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/orders/': {
-      id: '/admin/orders/'
-      path: '/admin/orders'
-      fullPath: '/admin/orders'
-      preLoaderRoute: typeof AdminOrdersIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/expenses/': {
-      id: '/admin/expenses/'
-      path: '/admin/expenses'
-      fullPath: '/admin/expenses'
-      preLoaderRoute: typeof AdminExpensesIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/events/': {
-      id: '/admin/events/'
-      path: '/admin/events'
-      fullPath: '/admin/events'
-      preLoaderRoute: typeof AdminEventsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-  }
 }
 
 const rootRouteChildren: RootRouteChildren = {
@@ -264,6 +286,63 @@ const rootRouteChildren: RootRouteChildren = {
   AdminUsersIndexRoute: AdminUsersIndexRoute,
   AdminVenuesIndexRoute: AdminVenuesIndexRoute,
 }
-export const routeTree = rootRouteImport
+
+export const routeTree = rootRoute
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+/* ROUTE_MANIFEST_START
+{
+  "routes": {
+    "__root__": {
+      "filePath": "__root.tsx",
+      "children": [
+        "/",
+        "/member-register/",
+        "/register/",
+        "/admin/events/",
+        "/admin/expenses/",
+        "/admin/orders/",
+        "/admin/products/",
+        "/admin/reporting/",
+        "/admin/sessions/",
+        "/admin/users/",
+        "/admin/venues/"
+      ]
+    },
+    "/": {
+      "filePath": "index.tsx"
+    },
+    "/member-register/": {
+      "filePath": "member-register/index.tsx"
+    },
+    "/register/": {
+      "filePath": "register/index.tsx"
+    },
+    "/admin/events/": {
+      "filePath": "admin/events/index.tsx"
+    },
+    "/admin/expenses/": {
+      "filePath": "admin/expenses/index.tsx"
+    },
+    "/admin/orders/": {
+      "filePath": "admin/orders/index.tsx"
+    },
+    "/admin/products/": {
+      "filePath": "admin/products/index.tsx"
+    },
+    "/admin/reporting/": {
+      "filePath": "admin/reporting/index.tsx"
+    },
+    "/admin/sessions/": {
+      "filePath": "admin/sessions/index.tsx"
+    },
+    "/admin/users/": {
+      "filePath": "admin/users/index.tsx"
+    },
+    "/admin/venues/": {
+      "filePath": "admin/venues/index.tsx"
+    }
+  }
+}
+ROUTE_MANIFEST_END */

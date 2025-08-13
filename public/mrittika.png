@@ -1,0 +1,9 @@
+I cannot directly process or write binary image data through this text-based interface. To replace the logo with your uploaded Mrittika Canada logo, you'll need to:
+
+1. Save your uploaded logo image as "mrittika.png" in the public/ directory
+2. Ensure the file overwrites the existing public/mrittika.png
+3. The image should be optimized for web use (reasonable file size while maintaining quality)
+
+The new logo with Bengali script, "Mrittika Canada" text, and "connecting to our roots" tagline on the deep red background will then be displayed in your application wherever the mrittika.png file is referenced.
+
+If you're using a development environment, you can typically drag and drop the image file directly into the public/ folder, or use command line tools to copy it to the correct location.
