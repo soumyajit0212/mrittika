@@ -1,8 +1,0 @@
-{
-  "virtual:$vinxi/handler/trpc": {
-    "file": "trpc.js",
-    "name": "trpc",
-    "src": "virtual:$vinxi/handler/trpc",
-    "isEntry": true
-  }
-}

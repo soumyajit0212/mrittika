@@ -1,8 +1,0 @@
-{
-  "virtual:$vinxi/handler/debug": {
-    "file": "debug.js",
-    "name": "debug",
-    "src": "virtual:$vinxi/handler/debug",
-    "isEntry": true
-  }
-}
