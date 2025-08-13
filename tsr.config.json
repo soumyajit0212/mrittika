@@ -1,4 +1,11 @@
 {
-  "routeTreeFileHeader": ["// noinspection JSUnusedGlobalSymbols"],
-  "generatedRouteTree": "./src/generated/tanstack-router/routeTree.gen.ts"
+  "installCommand": "npm ci",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "functions": {
+    "api/**": { "runtime": "nodejs20.x" }
+  },
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }
