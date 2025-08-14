@@ -14,7 +14,7 @@ import { consoleForwardPlugin } from "./vite-console-forward-plugin";
 
 export default createApp({
   server: {
-    preset: "node-server",
+    preset: "vercel",
     experimental: {
       asyncContext: true,
     },
