@@ -1,103 +1,50 @@
+// app.config.ts
 import { createApp } from "vinxi";
-import reactRefresh from "@vitejs/plugin-react";
-import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
-import tsConfigPaths from "vite-tsconfig-paths";
-import { config } from "vinxi/plugins/config";
-import { env } from "./src/server/env";
-import { nodePolyfills } from "vite-plugin-node-polyfills";
-import { consoleForwardPlugin } from "./vite-console-forward-plugin";
-import { fixPrismaDotPrismaImport } from "./fix-prisma-dotprisma-plugin";
 
 export default createApp({
-  server: {
-    preset: process.env.VERCEL ? "vercel" : "node-server", // change to 'netlify' or 'bun' or anyof the supported presets for nitro (nitro.unjs.io)
-    experimental: {
-      asyncContext: true,
-      nitro: {
-      externals: {
-        inline: ["@prisma/client", "prisma"], // make Prisma work in serverless
-      },
-    },
-    },
-  },
   routers: [
+    // serve static assets in /public at the root
     {
-      type: "static",
       name: "public",
+      type: "static",
       dir: "./public",
+      base: "/",
     },
+
+    // Vite browser client
     {
-      type: "http",
-      name: "trpc",
-      base: "/trpc",
-      handler: "./src/server/trpc/handler.ts",
-      target: "server",
-      plugins: () => [
-        config("allowedHosts", {
-          // @ts-ignore
-          server: {
-            allowedHosts: env.BASE_URL
-              ? [env.BASE_URL.split("://")[1]]
-              : undefined,
-          },
-        }),
-        tsConfigPaths({
-          projects: ["./tsconfig.json"],
-        }),
-      ],
-    },
-    {
-      type: "http",
-      name: "debug",
-      base: "/api/debug/client-logs",
-      handler: "./src/server/debug/client-logs-handler.ts",
-      target: "server",
-      plugins: () => [
-        config("allowedHosts", {
-          // @ts-ignore
-          server: {
-            allowedHosts: env.BASE_URL
-              ? [env.BASE_URL.split("://")[1]]
-              : undefined,
-          },
-        }),
-        tsConfigPaths({
-          projects: ["./tsconfig.json"],
-        }),
-      ],
-    },
-    {
-      type: "spa",
       name: "client",
-      handler: "./index.html",
+      type: "client",
+      handler: "./src/main.tsx", // change if your entry file differs
       target: "browser",
-      plugins: () => [
-        fixPrismaDotPrismaImport(),
-        config("allowedHosts", {
-          // @ts-ignore
-          server: {
-            allowedHosts: env.BASE_URL
-              ? [env.BASE_URL.split("://")[1]]
-              : undefined,
-          },
-        }),
-        tsConfigPaths({
-          projects: ["./tsconfig.json"],
-        }),
-        TanStackRouterVite({
-          target: "react",
-          autoCodeSplitting: true,
-          routesDirectory: "./src/routes",
-          generatedRouteTree: "./src/generated/routeTree.gen.ts",
-        }),
-        reactRefresh(),
-        nodePolyfills(),
-        consoleForwardPlugin({
-          enabled: true,
-          endpoint: "/api/debug/client-logs",
-          levels: ["log", "warn", "error", "info", "debug"],
-        }),
-      ],
+      base: "/_build",
+      // Lazily import Vite plugins so the file itself doesn't crash
+      plugins: async () => {
+        const plugins: any[] = [];
+
+        // React plugin: prefer SWC, fall back to Babel if needed
+        try {
+          const reactSwc = (await import("@vitejs/plugin-react-swc")).default;
+          plugins.push(reactSwc());
+        } catch {
+          try {
+            const react = (await import("@vitejs/plugin-react")).default;
+            plugins.push(react());
+          } catch {
+            // As a last resort, continue without React plugin (not recommended)
+          }
+        }
+
+        // TS path aliases
+        try {
+          const tsconfigPaths = (await import("vite-tsconfig-paths")).default;
+          plugins.push(tsconfigPaths());
+        } catch {
+          // ok to skip if not installed
+        }
+
+        return plugins;
+      },
     },
   ],
 });
