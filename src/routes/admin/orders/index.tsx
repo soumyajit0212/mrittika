@@ -52,6 +52,7 @@ const filterFormSchema = z.object({
   registrationType: z.enum(["all", "guest", "member"]).default("all"),
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
+  eventId: z.number().optional(),
 });
 
 const exportFormSchema = z.object({
@@ -170,7 +171,29 @@ function RegistrationManagementPage() {
     }
   });
 
-  const {
+  
+  // Track selected event from Filters
+  const selectedEventId = watchFilter("eventId");
+
+  // Sessions for selected event (used to map orders -> event via orderLines.sessionId)
+  const sessionsQuery = useQuery({
+    ...trpc.getSessions.queryOptions({
+      authToken: token!,
+      eventId: selectedEventId || undefined,
+    }),
+    enabled: !!selectedEventId,
+  });
+
+  // Approved expenses for the selected event
+  const expensesQuery = useQuery({
+    ...trpc.getExpenses.queryOptions({
+      authToken: token!,
+      eventId: selectedEventId || undefined,
+      status: "APPROVED" as any,
+    }),
+    enabled: !!selectedEventId,
+  });
+const {
     register: registerExport,
     handleSubmit: handleExportSubmit,
     formState: { errors: exportErrors },
@@ -274,7 +297,17 @@ function RegistrationManagementPage() {
       filtered = filtered.filter(order => new Date(order.createdAt) <= toDate);
     }
 
-    setFilteredOrders(filtered);
+    
+
+    // Event mapping filter: include orders that have at least one orderLine linked to a session of the selected event
+    if (filterValues.eventId) {
+      const sessionIdsForEvent = new Set((sessionsQuery.data || []).map(s => s.id));
+      filtered = filtered.filter(order => {
+        if (!order.orderLines || sessionIdsForEvent.size === 0) return false;
+        return order.orderLines.some(ol => ol.sessionId && sessionIdsForEvent.has(ol.sessionId));
+      });
+    }
+setFilteredOrders(filtered);
   }, [ordersQuery.data, watchFilter()]);
 
   const onExportSubmit = async (data: ExportForm) => {
@@ -355,6 +388,8 @@ function RegistrationManagementPage() {
   const guestRegistrations = filteredOrders.filter(order => order.guest).length;
   const memberRegistrations = filteredOrders.filter(order => order.member && !order.guest).length;
   const totalRevenue = filteredOrders.reduce((sum, order) => sum + order.totalCost, 0);
+  const totalExpenses = (expensesQuery?.data || []).reduce((sum: number, exp: any) => sum + (exp.amount || 0), 0);
+  const netRevenue = totalRevenue - totalExpenses;
   const totalPeople = filteredOrders.reduce((sum, order) => {
     const guest = order.guest;
     const member = order.member;
@@ -397,6 +432,7 @@ function RegistrationManagementPage() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Registrations</p>
                 <p className="text-2xl font-bold text-gray-900">{totalRegistrations}</p>
+                <p className="text-xs text-gray-500">Orders: {formatCurrency(totalRevenue)} • Expenses: {formatCurrency(totalExpenses)}</p>
               </div>
             </div>
           </div>
@@ -426,7 +462,7 @@ function RegistrationManagementPage() {
               <DollarSign className="h-8 w-8 text-red-600" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalRevenue)}</p>
+                <p className="text-2xl font-bold text-gray-900">{formatCurrency(netRevenue)}</p>
               </div>
             </div>
           </div>
@@ -448,7 +484,7 @@ function RegistrationManagementPage() {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Search</label>
                 <div className="mt-1 relative">
@@ -472,6 +508,21 @@ function RegistrationManagementPage() {
                   <option value="guest">Guest Only</option>
                   <option value="member">Member Only</option>
                 </select>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Event</label>
+                <select
+                  {...registerFilter("eventId", { valueAsNumber: true })}
+                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-red-500 focus:border-red-500"
+                >
+                  <option value="">All Events</option>
+                  {eventsQuery.data?.map((event) => (
+                    <option key={event.id} value={event.id}>
+                      {event.eventName}
+                    </option>
+                  ))}
+                </select>
+              </div>
               </div>
 
               <div>
