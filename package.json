@@ -3,7 +3,7 @@
   "scripts": {
     "postinstall": "prisma generate && tsr generate",
     "dev": "vinxi dev",
-    "build": "sh scripts/vercel-build.sh && vinxi build",
+    "build": "sh prisma/vercel-build.sh && vinxi build",
     "start": "vinxi start",
     "vercel-build": "prisma generate && prisma migrate deploy && vinxi build",
     "typecheck": "tsc --noEmit",
