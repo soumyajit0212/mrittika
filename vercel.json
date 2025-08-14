@@ -16,15 +16,3 @@
     { "source": "/:path*", "destination": "/" }
   ]
 }
-/*{
-  "build": {
-    "command": "npm run vercel-build",
-    "output": "dist"
-  },
-  "routes": [
-    { "handle": "filesystem" },
-    { "src": "/trpc/(.*)", "dest": "/trpc" },
-    { "src": "/api/debug/(.*)", "dest": "/api/debug/client-logs" },
-    { "src": "/(.*)", "dest": "/client" }
-  ]
-}*/
