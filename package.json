@@ -1,9 +1,12 @@
 {
-  "name": "first-project",
+  "name": "mrittika",
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "postinstall": "prisma generate && tsr generate",
     "dev": "vinxi dev",
-    "build": "sh scripts/vercel-build.sh && vinxi build",
+    "build": "vinxi build",
     "start": "vinxi start",
     "vercel-build": "prisma generate && prisma migrate deploy && vinxi build",
     "typecheck": "tsc --noEmit",
