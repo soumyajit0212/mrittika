@@ -6,6 +6,7 @@
     "build": "vinxi build",
     "start": "vinxi start",
     "typecheck": "tsc --noEmit",
+    "vercel-build": "prisma generate && vinxi build",
     "lint": "eslint . -c eslint.config.mjs --max-warnings 0",
     "db:generate": "prisma migrate dev",
     "db:migrate": "prisma migrate deploy",
