@@ -1,17 +1,12 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "version": 2,
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "functions": {
-    "api/**/*": {
-      "runtime": "nodejs22.x",
-      "memory": 512,
-      "maxDuration": 10
-    }
+  "build": {
+    "command": "npm run vercel-build",
+    "output": "dist"
   },
-  "rewrites": [
-    { "source": "/api/trpc/(.*)", "destination": "/api/trpc/[trpc]" },
-    { "source": "/(.*)", "destination": "/" }
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "/trpc/(.*)", "dest": "/trpc" },
+    { "src": "/api/debug/(.*)", "dest": "/api/debug/client-logs" },
+    { "src": "/(.*)", "dest": "/client" }
   ]
 }

@@ -5,6 +5,7 @@
     "dev": "vinxi dev",
     "build": "vinxi build",
     "start": "vinxi start",
+    "vercel-build": "prisma generate && prisma migrate deploy && vinxi build",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . -c eslint.config.mjs --max-warnings 0",
     "db:generate": "prisma migrate dev",
@@ -13,9 +14,9 @@
     "db:studio": "prisma studio",
     "format": "prettier --write ."
   },
-  "engines": {
-    "node": "18.x"
-  },
+   "engines": {
+   "node": ">=18.x"
+ },
   "dependencies": {
     "@headlessui/react": "^2.2.3",
     "@hookform/resolvers": "^5.1.1",
