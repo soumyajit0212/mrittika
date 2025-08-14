@@ -52,7 +52,6 @@ const filterFormSchema = z.object({
   registrationType: z.enum(["all", "guest", "member"]).default("all"),
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
-  eventId: z.number().optional(),
 });
 
 const exportFormSchema = z.object({
@@ -102,18 +101,7 @@ function RegistrationManagementPage() {
     trpc.getEvents.queryOptions({ authToken: token! })
   );
 
-  
-  const selectedEventId = watchFilter("eventId");
-
-  const expensesQuery = useQuery(
-    trpc.getExpenses.queryOptions({
-      authToken: token!,
-      eventId: selectedEventId || undefined,
-      status: "APPROVED" as any,
-    }),
-    { enabled: !!selectedEventId }
-  );
-const productsQuery = useQuery(
+  const productsQuery = useQuery(
     trpc.getProducts.queryOptions({ authToken: token! })
   );
 
@@ -286,21 +274,6 @@ const productsQuery = useQuery(
       filtered = filtered.filter(order => new Date(order.createdAt) <= toDate);
     }
 
-    // Event filter: restrict by event date range if selected
-    if (filterValues.eventId && eventsQuery.data) {
-      const ev = eventsQuery.data.find(e => e.id === filterValues.eventId);
-      if (ev) {
-        const evStart = new Date(ev.startDate);
-        const evEnd = new Date(ev.endDate);
-        evEnd.setHours(23, 59, 59, 999);
-        filtered = filtered.filter(order => {
-          const created = new Date(order.createdAt);
-          return created >= evStart && created <= evEnd;
-        });
-      }
-    }
-
-
     setFilteredOrders(filtered);
   }, [ordersQuery.data, watchFilter()]);
 
@@ -382,8 +355,6 @@ const productsQuery = useQuery(
   const guestRegistrations = filteredOrders.filter(order => order.guest).length;
   const memberRegistrations = filteredOrders.filter(order => order.member && !order.guest).length;
   const totalRevenue = filteredOrders.reduce((sum, order) => sum + order.totalCost, 0);
-  const totalExpenses = (expensesQuery.data || []).reduce((sum: number, exp: any) => sum + (exp.amount || 0), 0);
-  const netRevenue = totalRevenue - totalExpenses;
   const totalPeople = filteredOrders.reduce((sum, order) => {
     const guest = order.guest;
     const member = order.member;
@@ -426,7 +397,6 @@ const productsQuery = useQuery(
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Registrations</p>
                 <p className="text-2xl font-bold text-gray-900">{totalRegistrations}</p>
-                <p className="text-xs text-gray-500">Orders: {formatCurrency(totalRevenue)} • Expenses (event): {formatCurrency(totalExpenses)}</p>
               </div>
             </div>
           </div>
@@ -456,7 +426,7 @@ const productsQuery = useQuery(
               <DollarSign className="h-8 w-8 text-red-600" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(netRevenue)}</p>
+                <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalRevenue)}</p>
               </div>
             </div>
           </div>
@@ -478,7 +448,7 @@ const productsQuery = useQuery(
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Search</label>
                 <div className="mt-1 relative">
