@@ -1,58 +1,48 @@
-import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
-import {
-  loggerLink,
-  splitLink,
-  httpBatchStreamLink,
-  httpSubscriptionLink,
-  createTRPCClient,
-} from "@trpc/client";
-import { createTRPCContext } from "@trpc/tanstack-react-query";
-import { useState } from "react";
-import SuperJSON from "superjson";
+// src/trpc/react.tsx
+import React from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { createTRPCReact } from "@trpc/react-query";
+import { httpBatchLink, loggerLink } from "@trpc/client";
+// If this import errors, ensure main.ts exports: `export type AppRouter = typeof appRouter`
+import type { AppRouter } from "~/server/trpc/main";
 
-import { AppRouter } from "~/server/trpc/root";
-import { getQueryClient } from "./query-client";
-
-const { TRPCProvider, useTRPC, useTRPCClient } = createTRPCContext<AppRouter>();
-
-export { useTRPC, useTRPCClient };
+export const trpc = createTRPCReact<AppRouter>();
 
 function getBaseUrl() {
-  if (typeof window !== "undefined") return window.location.origin;
-  return `http://localhost:3000`;
+  // Client bundles use relative; works on Vercel/Render
+  if (typeof window !== "undefined") return "";
+  // (SSR fallback if you add SSR later)
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  if (process.env.RENDER_EXTERNAL_URL) return `https://${process.env.RENDER_EXTERNAL_URL}`;
+  return `http://localhost:${process.env.PORT ?? 5173}`;
 }
 
-export function TRPCReactProvider(props: { children: React.ReactNode }) {
-  const queryClient = getQueryClient();
-
-  const [trpcClient] = useState(() =>
-    createTRPCClient<AppRouter>({
+export function TRPCProvider({ children }: { children: React.ReactNode }) {
+  const [queryClient] = React.useState(() => new QueryClient());
+  const [client] = React.useState(() =>
+    trpc.createClient({
       links: [
         loggerLink({
-          enabled: (op) =>
+          enabled: (opts) =>
             process.env.NODE_ENV === "development" ||
-            (op.direction === "down" && op.result instanceof Error),
+            (opts.direction === "down" && opts.result instanceof Error),
         }),
-        splitLink({
-          condition: (op) => op.type === "subscription",
-          false: httpBatchStreamLink({
-            transformer: SuperJSON,
-            url: getBaseUrl() + "/trpc",
-          }),
-          true: httpSubscriptionLink({
-            transformer: SuperJSON,
-            url: getBaseUrl() + "/trpc",
-          }),
+        httpBatchLink({
+          url: `${getBaseUrl()}/api/trpc`,
+          fetch(url, options) {
+            return fetch(url, {
+              ...options,
+              credentials: "include",
+            });
+          },
         }),
       ],
-    }),
+    })
   );
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
-        {props.children}
-      </TRPCProvider>
-    </QueryClientProvider>
+    <trpc.Provider client={client} queryClient={queryClient}>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </trpc.Provider>
   );
 }
