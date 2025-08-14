@@ -1,15 +1,27 @@
 // app.config.ts
 import { defineConfig } from "vinxi";
-import react from "@vitejs/plugin-react-swc";
 
-/**
- * Try to load vite-tsconfig-paths at build time.
- * If it's not installed, we skip it (and log a warning) so the build doesn't fail.
- */
+/** Try to load the React plugin (SWC first, then classic). */
+async function maybeReactPlugin() {
+  try {
+    const mod = await import("@vitejs/plugin-react-swc");
+    return mod.default();
+  } catch {
+    try {
+      const mod = await import("@vitejs/plugin-react");
+      console.warn("[build] Using @vitejs/plugin-react fallback.");
+      return mod.default();
+    } catch {
+      console.warn("[build] No React plugin found; continuing without it.");
+      return null;
+    }
+  }
+}
+
+/** Try to load vite-tsconfig-paths for path alias resolution. */
 async function maybeTsconfigPaths() {
   try {
     const mod = await import("vite-tsconfig-paths");
-    // most builds export default the plugin factory
     return mod.default();
   } catch {
     console.warn("[build] vite-tsconfig-paths not installed; skipping path alias resolution.");
@@ -18,50 +30,47 @@ async function maybeTsconfigPaths() {
 }
 
 export default defineConfig(async () => {
-  const tsPaths = await maybeTsconfigPaths();
+  const [reactPlugin, tsPaths] = await Promise.all([
+    maybeReactPlugin(),
+    maybeTsconfigPaths(),
+  ]);
 
   return {
-    /**
-     * You can tweak server preset if you need a specific runtime.
-     * 'node' is a safe default for Vercel/Render node functions.
-     */
     server: {
-      preset: "node",
+      preset: "node", // good for Vercel/Render node functions
     },
-
     routers: [
-      // --- Client (browser) bundle ---
+      // Browser bundle (CSR / SPA)
       {
         name: "client",
-        type: "spa",            // or "client" if you’re using SSR/hybrid. "spa" is safe when using CSR.
+        type: "spa",
         base: "/",
-        handler: "./src/entry-client.tsx", // keep your actual entry path
+        handler: "./src/entry-client.tsx", // keep your actual client entry path
         target: "browser",
         vite: {
-          plugins: [react(), tsPaths].filter(Boolean),
+          plugins: [reactPlugin, tsPaths].filter(Boolean),
         },
       },
 
-      // --- Server app (SSR or server handlers) ---
-      {
-        name: "server",
-        type: "http",
-        base: "/",
-        handler: "./src/entry-server.tsx", // keep your actual entry path if you use SSR; otherwise you can remove this router
-        target: "server",
-      },
+      // If you actually have SSR or server handlers, uncomment & point to real files:
+      // {
+      //   name: "server",
+      //   type: "http",
+      //   base: "/",
+      //   handler: "./src/entry-server.tsx",
+      //   target: "server",
+      // },
 
-      // --- API routes (e.g. /api/*) ---
-      // If you expose handlers under src/api/**, keep this. If not, remove it.
-      {
-        name: "api",
-        type: "http",
-        base: "/api",
-        handler: "./src/api/index.ts", // adjust to your actual API entry (or remove this router if unused)
-        target: "server",
-      },
+      // If you have a server API that Vinxi should build, uncomment & point to your entry:
+      // {
+      //   name: "api",
+      //   type: "http",
+      //   base: "/api",
+      //   handler: "./src/api/index.ts",
+      //   target: "server",
+      // },
 
-      // --- Static assets in /public ---
+      // Static assets
       {
         name: "assets",
         type: "static",
