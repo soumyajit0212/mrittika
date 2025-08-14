@@ -1,80 +1,38 @@
 // app.config.ts
+import { createApp } from "vinxi";
+import react from "@vitejs/plugin-react-swc";
+// Optional but recommended: respects paths from your tsconfig
+import tsconfigPaths from "vite-tsconfig-paths";
 
-/** Try to load the React plugin (SWC first, then classic). */
-async function maybeReactPlugin() {
-  try {
-    const mod = await import("@vitejs/plugin-react-swc");
-    return mod.default();
-  } catch {
-    try {
-      const mod = await import("@vitejs/plugin-react");
-      console.warn("[build] Using @vitejs/plugin-react fallback.");
-      return mod.default();
-    } catch {
-      console.warn("[build] No React plugin found; continuing without it.");
-      return null;
-    }
-  }
-}
-
-/** Try to load vite-tsconfig-paths for path alias resolution. */
-async function maybeTsconfigPaths() {
-  try {
-    const mod = await import("vite-tsconfig-paths");
-    return mod.default();
-  } catch {
-    console.warn("[build] vite-tsconfig-paths not installed; skipping path alias resolution.");
-    return null;
-  }
-}
-
-/**
- * Export the Vinxi config directly (no defineConfig).
- * Vinxi accepts a plain object or an async function returning one.
- */
-export default async () => {
-  const [reactPlugin, tsPaths] = await Promise.all([
-    maybeReactPlugin(),
-    maybeTsconfigPaths(),
-  ]);
-
-  return {
-    server: {
-      // Works for Vercel/Render Node functions
-      preset: "node",
+export default createApp({
+  routers: [
+    // Serves files from ./public at the root (/, /favicon.ico, etc.)
+    {
+      name: "public",
+      type: "static",
+      dir: "./public",
+      base: "/",
     },
-    routers: [
-      // Client (SPA) bundle
-      {
-        name: "client",
-        type: "spa",
-        base: "/",
-        // ⬇️ IMPORTANT: set this to your actual client entry file
-        // If your project uses TanStack Start defaults, this is usually src/entry-client.tsx
-        // If you don’t have one, point to your boot file (e.g. src/main.tsx).
-        handler: "./src/entry-client.tsx",
-        target: "browser",
-        vite: {
-          plugins: [reactPlugin, tsPaths].filter(Boolean),
-        },
-      },
 
-      // Static assets
-      {
-        name: "assets",
-        type: "static",
-        base: "/",
-        dir: "./public",
-      },
+    // Builds the browser bundle for your SPA
+    {
+      name: "client",
+      type: "client",
+      // If your entry is different, adjust this path (e.g. "./src/app.tsx")
+      handler: "./src/main.tsx",
+      target: "browser",
+      base: "/_build",
+      // Vite plugins for the client build
+      plugins: () => [react(), tsconfigPaths()],
+    },
 
-      // If you have server handlers/APIs under Vinxi, add a router like this and set handler:
-      // {
-      //   name: "api",
-      //   type: "http",
-      //   base: "/api",
-      //   handler: "./src/api/index.ts",
-      //   target: "server",
-      // },
-    ],
-  };
-};
+    // If later you add server rendering or API handlers via vinxi/nitro,
+    // you can add an "http" router here. For a pure SPA you don't need it.
+    // {
+    //   name: "server",
+    //   type: "http",
+    //   handler: "./src/entry-server.ts",
+    //   target: "server",
+    // },
+  ],
+});
