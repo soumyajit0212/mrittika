@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+//import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -41,7 +42,7 @@ function GuestRegistrationPage() {
   const trpc = useTRPC();
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
 
-  // Query data
+  // Enable public queries
   const eventsQuery = useQuery(
     trpc.getPublicEvents.queryOptions()
   );
@@ -94,6 +95,10 @@ function GuestRegistrationPage() {
     name: "sessionSelections"
   });
 
+  /*const sessionSelections = useWatch({
+    control,
+    name: "sessionSelections"
+  });*/
   const sessionSelections = watch("sessionSelections");
   const watchedEventId = watch("eventId");
   const adults = watch("adults");
@@ -105,7 +110,7 @@ function GuestRegistrationPage() {
   const totalGuests = (adults || 0) + (children || 0) + (infants || 0) + (elder || 0);
 
   // Helper function to calculate Entry product quantity based on guest counts
-  const calculateEntryQuantity = (productSize: string, adults: number, children: number, elder: number) => {
+  const calculateEntryQuantity = useCallback((productSize: string, adults: number, children: number, elder: number) => {
     switch (productSize) {
       case 'Adult':
         return adults || 0;
@@ -116,7 +121,7 @@ function GuestRegistrationPage() {
       default:
         return 0;
     }
-  };
+  }, []);
 
   // Update sessions when event changes
   useEffect(() => {
@@ -128,15 +133,31 @@ function GuestRegistrationPage() {
   // Initialize session selections when sessions load
   useEffect(() => {
     if (sessionsQuery.data && sessionsQuery.data.length > 0 && productsQuery.data) {
-      console.log("Guest registration: Initializing session selections...");
+      console.log("Initializing session selections...");
 
       const newSessionSelections = sessionsQuery.data.map(session => {
         const productSelections: any[] = [];
 
         session.productSessionMaps.forEach(psm => {
           psm.product.productTypes.forEach(productType => {
-            // Initialize all quantities to 0 - entry quantities will be set when sessions are selected
+            // Auto-populate Entry product quantities based on guest counts
             let quantity = 0;
+            if (psm.product.productType === 'Entry') {
+              // Inline the calculation to avoid dependency issues
+              switch (productType.productSize) {
+                case 'Adult':
+                  quantity = adults || 1;
+                  break;
+                case 'Children':
+                  quantity = children || 0;
+                  break;
+                case 'Elder':
+                  quantity = elder || 0;
+                  break;
+                default:
+                  quantity = 0;
+              }
+            }
 
             productSelections.push({
               productId: psm.product.id,
@@ -146,7 +167,7 @@ function GuestRegistrationPage() {
           });
         });
 
-        console.log(`Guest registration: Session ${session.id} initialized with ${productSelections.length} product selections`);
+        console.log(`Session ${session.id} initialized with ${productSelections.length} product selections`);
 
         return {
           sessionId: session.id,
@@ -157,14 +178,67 @@ function GuestRegistrationPage() {
       });
 
       replaceSessionFields(newSessionSelections);
-      console.log("Guest registration: Session selections initialized:", newSessionSelections);
+      console.log("Session selections initialized:", newSessionSelections);
     }
   }, [sessionsQuery.data, productsQuery.data, adults, children, elder, replaceSessionFields]);
 
   // Update Entry product quantities when guest counts change
-  useEffect(() => {
+/*  useEffect(() => {
+    if (sessionFields.length > 0 && productsQuery.data) {
+      console.log("Updating entry quantities based on guest counts...");
+
+      sessionFields.forEach((field, sessionIndex) => {
+        const sessionId = field.sessionId;
+        /*const currentSession = sessionSelections?.[sessionIndex];
+        if (!currentSession?.productSelections) return; */
+  /*      const currentSession = sessionsQuery.data?.find(s => s.id === sessionId);
+        if (!currentSession) return;
+
+
+
+        currentSession.productSessionMaps.forEach(psm => {
+          const product = productsQuery.data?.find(p => p.id === psm.productId);
+          const productType = product?.productTypes.find(pt => pt.productId === psm.id);
+
+          if (product?.productType === 'Entry' && productType) {
+            const currSession = sessionSelections?.[sessionIndex];
+            if (currSession?.sessionId === sessionId){
+            // Inline the calculation to avoid dependency issues
+            let expectedQuantity = 0;
+            if (currSession.selected) {
+              switch (productType.productSize) {
+                case 'Adult':
+                  expectedQuantity = adults || 1;
+                  break;
+                case 'Children':
+                  expectedQuantity = children || 0;
+                  break;
+                case 'Elder':
+                  expectedQuantity = elder || 0;
+                  break;
+                default:
+                  expectedQuantity = 0;
+              }
+            }
+            }
+            const expectedQuantity = calculateEntryQuantity(productType.productSize, adults || 1, children || 0, elder || 0);
+            const productSelectionIndex = sessionFields[sessionIndex]?.productSelections?.findIndex(
+                (ps: any) => ps.productId === psm.product.id && ps.productTypeId === productType.id
+              );
+
+            if (productSelectionIndex !== undefined && productSelectionIndex >= 0){
+             // console.log(`Updating entry quantity for session ${sessionIndex}, product ${productIndex}: ${productSelection.quantity} -> ${expectedQuantity}`);
+              setValue(`sessionSelections.${sessionIndex}.productSelections.${productSelectionIndex}.quantity`, expectedQuantity);
+            }
+          }
+        });
+      });
+    }
+  }, [adults, children, elder, sessionFields.length, productsQuery.data, setValue]); */
+
+useEffect(() => {
     if (sessionFields.length > 0 && productsQuery.data && sessionsQuery.data) {
-      console.log("Guest registration: Updating entry quantities based on guest counts...");
+      console.log("Member registration: Updating entry quantities based on guest counts...");
 
       sessionFields.forEach((field, sessionIndex) => {
         // Get the current session data directly from the field
@@ -193,36 +267,32 @@ function GuestRegistrationPage() {
     }
   }, [adults, children, elder, sessionFields.length, productsQuery.data, sessionsQuery.data, setValue, calculateEntryQuantity]);
 
-  // Calculate total cost with guest-specific logic
-  const calculateTotalCost = () => {
-    if (!sessionsQuery.data || !productsQuery.data) return { totalCost: 0, entryCost: 0, foodCost: 0, discountApplied: false };
 
-    let entryCost = 0;
-    let foodCost = 0;
+  // Calculate costs directly without useMemo to avoid dependency issues
+  let totalCost = 0;
+  let entryCost = 0;
+  let foodCost = 0;
+  let discountApplied = false;
+
+  if (sessionSelections && productsQuery.data) {
     let selectedSessionsCount = 0;
 
-    sessionSelections?.forEach((sessionSelection, sessionIndex) => {
-      if (sessionSelection.selected) {
+    sessionSelections.forEach((session, sessionIndex) => {
+      if (session.selected) {
         selectedSessionsCount++;
 
-        sessionSelection.productSelections?.forEach(productSelection => {
+        session.productSelections?.forEach((productSelection, productIndex) => {
           if (productSelection.quantity > 0) {
-            const session = sessionsQuery.data.find(s => s.id === sessionSelection.sessionId);
-            const productSessionMap = session?.productSessionMaps.find(psm => psm.product.id === productSelection.productId);
-            const product = productSessionMap?.product;
+            const product = productsQuery.data?.find(p => p.id === productSelection.productId);
             const productType = product?.productTypes.find(pt => pt.id === productSelection.productTypeId);
-
-            if (product && productType) {
-              const lineTotal = productType.productPrice * productSelection.quantity;
+            if (productType) {
+              const lineTotal = productSelection.quantity * productType.productPrice;
 
               // Separate costs by product type
               if (product.productType === 'Entry') {
                 entryCost += lineTotal;
               } else if (product.productType === 'Food') {
-                // Only add food cost if not opted out
-                if (!sessionSelection.optOutOfFood) {
-                  foodCost += lineTotal;
-                }
+                foodCost += lineTotal;
               }
             }
           }
@@ -233,36 +303,18 @@ function GuestRegistrationPage() {
     // Apply 30% discount only to entry costs if all sessions are selected
     const totalSessions = sessionFields.length;
     const allSessionsSelected = totalSessions > 0 && selectedSessionsCount === totalSessions;
-    const twoSessions = selectedSessionsCount >= 2 && selectedSessionsCount < 4;
-    const fourSessions = selectedSessionsCount >=4 && selectedSessionsCount < totalSessions;
-    let discountPct="0%";
-    let discountF=1;
-    let discountApplied = false;
 
     if (allSessionsSelected && entryCost > 0) {
       entryCost = entryCost * 0.7; // 30% discount on entry only
       discountApplied = true;
-      discountPct="30%";
-      discountF=0.7;
-    }else if (fourSessions && entryCost > 0){
-      entryCost = entryCost * 0.8;
-      discountPct="20%";
-      discountApplied = true;
-      discountF=0.8;
-    }else if (twoSessions && entryCost > 0){
-      entryCost = entryCost * 0.9;
-      discountPct="10%";
-      discountF=0.9;
-      discountApplied = true;
     }
 
-    const totalCost = entryCost + foodCost;
-    return { totalCost, entryCost, foodCost, discountApplied, discountPct, discountF};
-  };
-
-  const { totalCost, entryCost, foodCost, discountApplied, discountPct,  discountF} = calculateTotalCost();
+    totalCost = entryCost + foodCost;
+  }
 
   const onSubmit = async (data: RegistrationForm) => {
+    console.log("Form submission started with data:", data);
+
     // Validate dine-in food selections for sessions that haven't opted out of food
     let validationError = "";
 
@@ -272,6 +324,8 @@ function GuestRegistrationPage() {
       Children: data.children,
       Elder: data.elder
     };
+
+    console.log("Validating dine-in selections for person counts:", personTypeCounts);
 
     data.sessionSelections
       .filter(session => session.selected && !session.optOutOfFood)
@@ -294,6 +348,8 @@ function GuestRegistrationPage() {
           }
         });
 
+        console.log(`Session ${sessionIndex} dine-in selections:`, foodSelectionsByPersonType);
+
         // Check if dine-in selections match person counts
         Object.entries(foodSelectionsByPersonType).forEach(([personType, totalSelected]) => {
           const requiredCount = personTypeCounts[personType as keyof typeof personTypeCounts] || 0;
@@ -304,6 +360,7 @@ function GuestRegistrationPage() {
       });
 
     if (validationError) {
+      console.error("Validation error:", validationError);
       toast.error(validationError, { duration: 6000 });
       return;
     }
@@ -316,12 +373,15 @@ function GuestRegistrationPage() {
         productSelections: session.productSelections.filter(p => p.quantity > 0)
       }));
 
+    console.log("Filtered session selections:", filteredSessionSelections);
+
     if (filteredSessionSelections.length === 0) {
       toast.error("Please select at least one session with products.");
       return;
     }
 
     try {
+      console.log("Submitting registration...");
       await registrationMutation.mutateAsync({
         ...data,
         guestEmail: data.guestEmail || undefined,
@@ -329,6 +389,7 @@ function GuestRegistrationPage() {
       });
     } catch (error) {
       console.error("Registration error:", error);
+      // Error handling is done in mutation callback
     }
   };
 
@@ -347,21 +408,10 @@ function GuestRegistrationPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Logo Section */}
-        <div className="text-center mb-8">
-          <img
-            src="/mrittika.png"
-            alt="Mrittika Canada Logo"
-            className="h-16 w-auto mx-auto mb-4"
-          />
-          <h1 className="text-3xl font-bold text-red-600">Mrittika Canada</h1>
-          <p className="text-gray-600 mt-2">Guest Event Registration</p>
-        </div>
-
         <div className="bg-white shadow rounded-lg">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h1 className="text-2xl font-bold text-gray-900">Guest Event Registration</h1>
-            <p className="text-gray-600 mt-1">Register for upcoming events as a guest</p>
+            <h1 className="text-2xl font-bold text-gray-900">Event Registration</h1>
+            <p className="text-gray-600 mt-1">Register for upcoming events</p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-8">
@@ -544,18 +594,6 @@ function GuestRegistrationPage() {
               <div className="space-y-6">
                 <h2 className="text-lg font-medium text-gray-900">Session & Product Selection</h2>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm text-blue-800">
-                    <strong>Guest Pricing:</strong> Entry fees apply for all sessions. Select 2 or more sessions to get <strong>10% </strong>off entry fees! Food items are charged at regular prices.
-                  </p>
-                  <p className="text-sm text-blue-800">
-                    <strong>Guest Pricing:</strong> Entry fees apply for all sessions. Select 4 or more sessions to get <strong>20% </strong>off entry fees! Food items are charged at regular prices.
-                  </p>
-                  <p className="text-sm text-blue-800">
-                    <strong>Guest Pricing:</strong> Entry fees apply for all sessions. Select all sessions to get <strong>30% </strong>off entry fees! Food items are charged at regular prices.
-                  </p>
-                </div>
-
                 <div className="space-y-4">
                   {sessionFields.map((field, sessionIndex) => {
                     const session = sessionsQuery.data?.find(s => s.id === field.sessionId);
@@ -652,11 +690,11 @@ function GuestRegistrationPage() {
                                   </label>
                                   <p className="text-sm text-amber-800 mt-1">
                                     Check this box if you only want entry tickets and don't want to order any food for this session.
-                                    You'll still pay for entry tickets, but no food orders will be placed.
+                                    This will hide all food options and you'll only pay for entry.
                                   </p>
                                   {sessionSelections?.[sessionIndex]?.optOutOfFood && (
                                     <div className="mt-2 p-2 bg-amber-100 rounded text-sm text-amber-900 font-medium">
-                                      ✓ Food ordering disabled for this session. You'll get entry tickets without any food orders.
+                                      ✓ Food ordering disabled for this session. Only entry tickets will be processed.
                                     </div>
                                   )}
                                 </div>
@@ -669,7 +707,6 @@ function GuestRegistrationPage() {
                                 <h4 className="font-semibold text-blue-900 mb-2">🍽️ Food Selection Guide</h4>
                                 <div className="text-sm text-blue-800 space-y-1">
                                   <p><strong>Your Group:</strong> {adults} Adult{adults !== 1 ? 's' : ''}, {children} Children, {elder} Elder{elder !== 1 ? 's' : ''}</p>
-                                  <p><strong>Guest Pricing:</strong> Entry fees apply (30% discount if all sessions selected)</p>
                                   <p><strong>Dine-in meals:</strong> You must select exactly one meal per person in each category</p>
                                   <p><strong>Take-away items:</strong> You can select any quantity you want</p>
                                   <p>💡 <strong>Tip:</strong> If you don't want food, use the "Skip Food" option above</p>
@@ -679,7 +716,13 @@ function GuestRegistrationPage() {
 
                             <h4 className="font-medium text-gray-700">Select Products:</h4>
                             {session.productSessionMaps
-                              .filter(psm => sessionSelections?.[sessionIndex]?.optOutOfFood ? psm.product.productType !== 'Food' : true)
+                              .filter(psm => {
+                                // If opted out of food for this session, hide food products
+                                if (sessionSelections?.[sessionIndex]?.optOutOfFood && psm.product.productType === 'Food') {
+                                  return false;
+                                }
+                                return true;
+                              })
                               .map((psm) => {
                                 const product = psm.product;
                                 const isFood = product.productType === 'Food';
@@ -723,12 +766,14 @@ function GuestRegistrationPage() {
 
                                               <div className="grid gap-3">
                                                 {availableOptions.map(productType => {
+                                                  // Find the correct index in the sessionSelections array more reliably
                                                   const productSelectionIndex = sessionSelections?.[sessionIndex]?.productSelections?.findIndex(
                                                     ps => ps.productId === product.id && ps.productTypeId === productType.id
                                                   );
 
+                                                  // Skip if product selection not found (shouldn't happen with proper initialization)
                                                   if (productSelectionIndex === undefined || productSelectionIndex === -1) {
-                                                    console.warn(`Guest registration: Product selection not found for product ${product.id}, type ${productType.id} in session ${sessionIndex}`);
+                                                    console.warn(`Product selection not found for product ${product.id}, type ${productType.id} in session ${sessionIndex}`);
                                                     return (
                                                       <div key={productType.id} className="p-3 rounded-lg border bg-red-50 border-red-200">
                                                         <p className="text-red-600 text-sm">Error: Product selection not initialized properly</p>
@@ -795,8 +840,9 @@ function GuestRegistrationPage() {
                                             ps => ps.productId === product.id && ps.productTypeId === productType.id
                                           );
 
+                                          // Skip if product selection not found
                                           if (productSelectionIndex === undefined || productSelectionIndex === -1) {
-                                            console.warn(`Guest registration: Product selection not found for product ${product.id}, type ${productType.id} in session ${sessionIndex}`);
+                                            console.warn(`Product selection not found for product ${product.id}, type ${productType.id} in session ${sessionIndex}`);
                                             return (
                                               <div key={productType.id} className="bg-red-50 border border-red-200 rounded-lg p-3">
                                                 <p className="text-red-600 text-sm">Error: Product selection not initialized properly</p>
@@ -809,9 +855,8 @@ function GuestRegistrationPage() {
                                               <div className="flex items-center justify-between">
                                                 <div>
                                                   <label className="block text-sm font-medium text-gray-700">
-                                                    🎫 {productType.productSize}
-                                                    {productType.productChoice !== 'NONE' && ` - ${productType.productChoice}`}
-                                                    <span className="text-gray-600 ml-2">${productType.productPrice.toFixed(2)}</span>
+                                                    🎫 {productType.productSize} Entry - ${productType.productPrice}
+                                                    {productType.productChoice !== 'NONE' && ` (${productType.productChoice})`}
                                                   </label>
                                                 </div>
 
@@ -841,7 +886,7 @@ function GuestRegistrationPage() {
 
                                               {product.productType === 'Entry' && (
                                                 <p className="text-xs text-blue-600 mt-2">
-                                                  ✨ Entry tickets are automatically calculated based on your family size when session is selected!
+                                                  Entry tickets are automatically calculated based on your family size
                                                 </p>
                                               )}
                                             </div>
@@ -863,53 +908,46 @@ function GuestRegistrationPage() {
 
             {/* Cost Summary */}
             {totalCost > 0 && (
-              <div className="space-y-4">
-                <h2 className="text-lg font-medium text-gray-900">Cost Summary</h2>
-
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <div className="bg-gray-50 p-6 rounded-lg">
+                <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                  <DollarSign className="h-5 w-5 mr-2" />
+                  Cost Summary
+                </h3>
+                <div className="space-y-2">
                   {entryCost > 0 && (
                     <>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm text-gray-600">Entry Fees Subtotal:</span>
-                        <span className="text-sm font-medium text-gray-900">${discountApplied ? (entryCost / discountF).toFixed(2) : entryCost.toFixed(2)}</span>
+                      <div className="flex justify-between">
+                        <span>Entry Fees Subtotal:</span>
+                        <span>${discountApplied ? (entryCost / 0.7).toFixed(2) : entryCost.toFixed(2)}</span>
                       </div>
                       {discountApplied && (
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-sm text-green-600 flex items-center">
+                        <div className="flex justify-between text-green-600">
+                          <span className="flex items-center">
                             <Check className="h-4 w-4 mr-1" />
-                            Entry Discount ({discountPct} discount applied):
+                            Entry Discount (30% - All Sessions):
                           </span>
-                          <span className="text-sm font-medium text-green-600">-${(((entryCost / discountF).toFixed(2)) *((1 - discountF)).toFixed(2)).toFixed(2)}</span>
+                          <span>-${((entryCost / 0.7) * 0.3).toFixed(2)}</span>
                         </div>
                       )}
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm text-gray-600">Entry Fees Total:</span>
-                        <span className="text-sm font-medium text-gray-900">${entryCost.toFixed(2)}</span>
+                      <div className="flex justify-between">
+                        <span>Entry Fees Total:</span>
+                        <span>${entryCost.toFixed(2)}</span>
                       </div>
                     </>
                   )}
                   {foodCost > 0 && (
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm text-gray-600">Food Items:</span>
-                      <span className="text-sm font-medium text-gray-900">${foodCost.toFixed(2)}</span>
+                    <div className="flex justify-between">
+                      <span>Food Items Total:</span>
+                      <span>${foodCost.toFixed(2)}</span>
                     </div>
                   )}
-                  <div className="border-t border-gray-300 pt-2">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium text-gray-900">Total Cost:</span>
-                      <span className="font-bold text-lg text-gray-900">${totalCost.toFixed(2)}</span>
-                    </div>
+                  <div className="flex justify-between font-bold text-lg border-t pt-2">
+                    <span>Total:</span>
+                    <span className="text-red-600">${totalCost.toFixed(2)}</span>
                   </div>
-
-                  <div className="border-t border-gray-300 pt-2">
-                    <div className="flex justify-between items-center">
-                      <span className="mt-2 p-2 bg-blue-50 rounded text-sm text-blue-800">Please transfer <strong> ${totalCost.toFixed(2)} </strong> using Interac to mrittikacanada@gmail.com. Admin will complete your registration once payment is verified.</span>
-                    </div>
-                  </div>
-
                   {!discountApplied && sessionFields.length > 0 && (
-                    <div className="mt-2 p-2 bg-blue-50 rounded text-sm text-blue-800">
-                      💡 <strong>Tip:</strong> Select all sessions to get 30% off entry fees!
+                    <div className="text-sm text-gray-600 mt-2">
+                      <p>💡 Select all sessions to get 30% off entry fees!</p>
                     </div>
                   )}
                 </div>
@@ -917,20 +955,17 @@ function GuestRegistrationPage() {
             )}
 
             {/* Enhanced Debug Information */}
-            {/*process.env.NODE_ENV === 'development' && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-6">
-                <h3 className="text-sm font-medium text-yellow-800 mb-2">Guest Registration Debug Info:</h3>
+            {process.env.NODE_ENV === 'development' && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <h3 className="text-sm font-medium text-yellow-800 mb-2">Debug Info:</h3>
                 <div className="text-xs text-yellow-700 space-y-1">
                   <div>Total Cost: ${totalCost.toFixed(2)}</div>
-                  <div>Entry Cost: ${entryCost.toFixed(2)}</div>
-                  <div>Food Cost: ${foodCost.toFixed(2)}</div>
-                  <div>Discount Applied: {discountApplied ? 'Yes' : 'No'}</div>
                   <div>Sessions Data Loaded: {sessionsQuery.data ? 'Yes' : 'No'}</div>
                   <div>Products Data Loaded: {productsQuery.data ? 'Yes' : 'No'}</div>
                   <div>Selected Sessions: {sessionSelections?.filter(s => s.selected).length || 0}</div>
                   <div>Session Selections Length: {sessionSelections?.length || 0}</div>
                   <div>Session Fields Length: {sessionFields.length}</div>
-                  <div>Button Disabled: {registrationMutation.isPending ? 'Yes' : 'No'}</div>
+                  <div>Button Disabled: {registrationMutation.isPending || totalCost === 0 ? 'Yes' : 'No'}</div>
                   <div>Mutation Pending: {registrationMutation.isPending ? 'Yes' : 'No'}</div>
                   {sessionSelections?.map((session, idx) => (
                     <div key={idx}>
@@ -945,21 +980,23 @@ function GuestRegistrationPage() {
                 </div>
               </div>
             )}
- {/* End of Enhamcement */}
+
             <div className="flex justify-end">
               <button
                 type="submit"
-                disabled={registrationMutation.isPending}
+                disabled={registrationMutation.isPending || totalCost === 0}
                 className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-md font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {registrationMutation.isPending
-                  ? "Processing..."
-                  : totalCost > 0
-                    ? `Pay $${totalCost.toFixed(2)} & Complete Registration`
-                    : "Complete Registration"
-                }
+                {registrationMutation.isPending ? "Registering..." : "Complete Registration"}
               </button>
             </div>
+
+            {/* Button Status Help */}
+            {totalCost === 0 && !registrationMutation.isPending && (
+              <div className="mt-2 text-sm text-gray-600 text-center">
+                <p>Please select at least one session and add products to enable registration.</p>
+              </div>
+            )}
           </form>
         </div>
       </div>

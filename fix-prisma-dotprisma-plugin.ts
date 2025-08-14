@@ -1,18 +1,22 @@
-import type { Plugin } from "vite";
+// fix-prisma-dotprisma-plugin.ts
+import { Plugin } from 'vite';
 
-/** Shims Prisma's internal `.prisma` path so client builds don't explode */
 export function fixPrismaDotPrismaImport(): Plugin {
   return {
-    name: "fix-prisma-dotprisma-import",
-    enforce: "pre",
+    name: 'fix-prisma-dotprisma-import',
+    enforce: 'pre',
     resolveId(id) {
-      if (id === ".prisma/client/index-browser") return "\0prisma-browser-shim";
-      if (id === ".prisma") return "\0prisma-shim";
+      if (id === '.prisma/client/index-browser') {
+        return '\0prisma-browser-shim';
+      }
+      if (id === '.prisma') {
+        return '\0prisma-shim';
+      }
       return null;
     },
     load(id) {
-      if (id === "\0prisma-shim" || id === "\0prisma-browser-shim") {
-        return "export default {}";
+      if (id === '\0prisma-shim' || id === '\0prisma-browser-shim') {
+        return 'export default {}';
       }
       return null;
     },

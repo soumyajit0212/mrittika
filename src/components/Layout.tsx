@@ -38,7 +38,7 @@ export function Layout({ children }: LayoutProps) {
   const menuItems = [
     ...(user.role === "ADMIN" ? [
       { name: "User Management", href: "/admin/users", icon: Users },
-      { name: "Registration Management", href: "/admin/orders", icon: Receipt },
+      { name: "Order Management", href: "/admin/orders", icon: Receipt },
       { name: "Venue Management", href: "/admin/venues", icon: MapPin },
     ] : []),
     { name: "Event Management", href: "/admin/events", icon: Calendar },
@@ -64,7 +64,11 @@ export function Layout({ children }: LayoutProps) {
                 {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
               </button>
               <Link to="/" className="flex items-center ml-2 lg:ml-0">
-                <img src="https://iili.io/FQqzADQ.png" alt="Mrittika Canada Logo" className="h-8 w-auto mr-3" />
+                <img 
+                  src="/mrittika.png" 
+                  alt="Mrittika Canada Logo" 
+                  className="h-12 w-auto mr-3"
+                />
                 <h1 className="text-2xl font-bold text-red-600">
                   Event Management
                 </h1>

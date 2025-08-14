@@ -1,3 +1,5 @@
+import dotenv from "dotenv";
+dotenv.config();
 import { z } from "zod";
 
 const envSchema = z.object({
@@ -6,8 +8,6 @@ const envSchema = z.object({
   BASE_URL_OTHER_PORT: z.string().optional(),
   ADMIN_PASSWORD: z.string(),
   JWT_SECRET: z.string(),
-  DATABASE_URL: z.string(),   // add
-  DIRECT_URL: z.string().optional(), // add
 });
 
 export const env = envSchema.parse(process.env);
