@@ -444,7 +444,7 @@ function GuestRegistrationPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    Children (5-13)
+                    Children (5-12)
                   </label>
                   <input
                     {...register("children", { valueAsNumber: true })}
@@ -561,19 +561,28 @@ function GuestRegistrationPage() {
                     const session = sessionsQuery.data?.find(s => s.id === field.sessionId);
                     if (!session) return null;
 
+                    const selectedReg = register(`sessionSelections.${sessionIndex}.selected`);
+                    const optOutReg = register(`sessionSelections.${sessionIndex}.optOutOfFood`);
+                    const selInputId = `session-${field.id}-selected`;
+                    const optOutInputId = `session-${field.id}-optout`;
+
+
                     return (
                       <div key={field.id} className="border border-gray-200 rounded-lg p-4">
                         <div className="flex items-center mb-4">
                           <input
-                            {...register(`sessionSelections.${sessionIndex}.selected`)}
+                            id={selInputId}
+                            {...selectedReg}
                             type="checkbox"
                             disabled={session.isFull}
-                            className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="h-6 w-6 text-red-600 focus:ring-red-500 border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                             onChange={(e) => {
                               if (session.isFull && e.target.checked) {
-                                e.target.checked = false;
+                                e.preventDefault?.();
                                 toast.error(`${session.sessionName} is full and cannot be selected.`);
+                                return;
                               }
+                              selectedReg.onChange(e);
                             }}
                           />
                           <div className="ml-3 flex-1">
@@ -631,11 +640,11 @@ function GuestRegistrationPage() {
                             <div className="bg-amber-50 border-2 border-amber-300 rounded-lg p-4">
                               <div className="flex items-start space-x-3">
                                 <input
-                                  {...register(`sessionSelections.${sessionIndex}.optOutOfFood`)}
+                                  id={optOutInputId}
+                                  {...optOutReg}
                                   type="checkbox"
                                   className="h-5 w-5 text-red-600 focus:ring-red-500 border-gray-300 rounded mt-0.5"
                                   onChange={(e) => {
-                                    // Clear food product quantities when opting out
                                     if (e.target.checked && sessionSelections?.[sessionIndex]?.productSelections) {
                                       sessionSelections[sessionIndex].productSelections.forEach((productSelection, productIndex) => {
                                         const product = productsQuery.data?.find(p => p.id === productSelection.productId);
@@ -644,10 +653,11 @@ function GuestRegistrationPage() {
                                         }
                                       });
                                     }
+                                    optOutReg.onChange(e);
                                   }}
                                 />
                                 <div className="flex-1">
-                                  <label className="text-base font-semibold text-amber-900 cursor-pointer">
+                                  <label htmlFor={optOutInputId} className="text-base font-semibold text-amber-900 cursor-pointer">
                                     🚫 Skip Food for This Session (Entry Only)
                                   </label>
                                   <p className="text-sm text-amber-800 mt-1">
