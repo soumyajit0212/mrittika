@@ -1,10 +1,17 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "version": 2,
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "functions": {
-    "api/**/*.js": {
-      "runtime": "nodejs18.x" // Specify Node.js version
-    },
-    "api/*.php": {
-      "runtime": "vercel-php@0.5.2" // PHP runtime with version
+    "api/**/*": {
+      "runtime": "nodejs22.x",
+      "memory": 512,
+      "maxDuration": 10
     }
-  }
+  },
+  "rewrites": [
+    { "source": "/api/trpc/(.*)", "destination": "/api/trpc/[trpc]" },
+    { "source": "/(.*)", "destination": "/" }
+  ]
 }
