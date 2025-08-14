@@ -1,5 +1,4 @@
 // app.config.ts
-import { defineConfig } from "vinxi";
 
 /** Try to load the React plugin (SWC first, then classic). */
 async function maybeReactPlugin() {
@@ -29,7 +28,11 @@ async function maybeTsconfigPaths() {
   }
 }
 
-export default defineConfig(async () => {
+/**
+ * Export the Vinxi config directly (no defineConfig).
+ * Vinxi accepts a plain object or an async function returning one.
+ */
+export default async () => {
   const [reactPlugin, tsPaths] = await Promise.all([
     maybeReactPlugin(),
     maybeTsconfigPaths(),
@@ -37,38 +40,24 @@ export default defineConfig(async () => {
 
   return {
     server: {
-      preset: "node", // good for Vercel/Render node functions
+      // Works for Vercel/Render Node functions
+      preset: "node",
     },
     routers: [
-      // Browser bundle (CSR / SPA)
+      // Client (SPA) bundle
       {
         name: "client",
         type: "spa",
         base: "/",
-        handler: "./src/entry-client.tsx", // keep your actual client entry path
+        // ⬇️ IMPORTANT: set this to your actual client entry file
+        // If your project uses TanStack Start defaults, this is usually src/entry-client.tsx
+        // If you don’t have one, point to your boot file (e.g. src/main.tsx).
+        handler: "./src/entry-client.tsx",
         target: "browser",
         vite: {
           plugins: [reactPlugin, tsPaths].filter(Boolean),
         },
       },
-
-      // If you actually have SSR or server handlers, uncomment & point to real files:
-      // {
-      //   name: "server",
-      //   type: "http",
-      //   base: "/",
-      //   handler: "./src/entry-server.tsx",
-      //   target: "server",
-      // },
-
-      // If you have a server API that Vinxi should build, uncomment & point to your entry:
-      // {
-      //   name: "api",
-      //   type: "http",
-      //   base: "/api",
-      //   handler: "./src/api/index.ts",
-      //   target: "server",
-      // },
 
       // Static assets
       {
@@ -77,6 +66,15 @@ export default defineConfig(async () => {
         base: "/",
         dir: "./public",
       },
+
+      // If you have server handlers/APIs under Vinxi, add a router like this and set handler:
+      // {
+      //   name: "api",
+      //   type: "http",
+      //   base: "/api",
+      //   handler: "./src/api/index.ts",
+      //   target: "server",
+      // },
     ],
   };
-});
+};
