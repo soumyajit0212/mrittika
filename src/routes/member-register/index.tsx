@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { useForm, useFieldArray, useWatch } from "react-hook-form";
+import { useForm, useFieldArray, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTRPC } from "~/trpc/react";
@@ -93,6 +93,60 @@ function MemberRegistrationPage() {
   const children = watch("children");
   const infants = watch("infants");
   const elder = watch("elder");
+  // Ensure food UI appears immediately on session toggle, mirroring guest page behavior
+  const onToggleSession = (sessionIndex: number, selected: boolean) => {
+    const current = getValues();
+    const sess = sessionsQuery.data?.find(s => s.id === current.sessionSelections?.[sessionIndex]?.sessionId);
+    if (!sess) {
+      // If sessions aren't loaded yet, just set the value; UI will render once data is ready
+      setValue(`sessionSelections.${sessionIndex}.selected` as const, selected, { shouldDirty: true, shouldTouch: true, shouldValidate: false });
+      return;
+    }
+
+    // Always set the selected flag first so watch() updates synchronously
+    setValue(`sessionSelections.${sessionIndex}.selected` as const, selected, { shouldDirty: true, shouldTouch: true });
+
+    // When selecting: prefill dine-in quantities and leave non-food/other quantities as-is (usually 0)
+    if (selected) {
+      const adults = getValues('adults') || 0;
+      const children = getValues('children') || 0;
+      const elder = getValues('elder') || 0;
+
+      // Walk product types for this session
+      sess.productSessionMaps.forEach((psm) => {
+        const product = psm.product;
+        psm.product.productTypes.forEach((pt) => {
+          // Find index in form array for this session's productType
+          const psIndex = current.sessionSelections?.[sessionIndex]?.productSelections?.findIndex(
+            (p: any) => p.productId === product.id && p.productTypeId === pt.id
+          ) ?? -1;
+          if (psIndex < 0) return;
+
+          // Auto-fill only DINE-IN food by person size, matching guest page UX
+          if (product.productType === 'Food' && pt.productSubtype === 'DINE-IN') {
+            let q = 0;
+            if (pt.productSize === 'Adult') q = adults;
+            else if (pt.productSize === 'Children') q = children;
+            else if (pt.productSize === 'Elder') q = elder;
+
+            // Set the quantity (0 allowed if that person count is 0)
+            setValue(`sessionSelections.${sessionIndex}.productSelections.${psIndex}.quantity` as const, q, { shouldDirty: true });
+          }
+        });
+      });
+
+      // Make sure food is visible by default on first select
+      setValue(`sessionSelections.${sessionIndex}.optOutOfFood` as const, false, { shouldDirty: true });
+    } else {
+      // If de-selecting the session, clear all product quantities for that session
+      const lines = current.sessionSelections?.[sessionIndex]?.productSelections || [];
+      lines.forEach((_ps: any, i: number) => {
+        setValue(`sessionSelections.${sessionIndex}.productSelections.${i}.quantity` as const, 0, { shouldDirty: true });
+      });
+      setValue(`sessionSelections.${sessionIndex}.optOutOfFood` as const, false, { shouldDirty: true });
+    }
+  };
+
 
   // Calculate total number of guests
   const totalGuests = (adults || 0) + (children || 0) + (infants || 0) + (elder || 0);
@@ -475,18 +529,30 @@ function MemberRegistrationPage() {
                     return (
                       <div key={field.id} className="border border-gray-200 rounded-lg p-4">
                         <div className="flex items-center mb-4">
-                          <input
-                            {...register(`sessionSelections.${sessionIndex}.selected`)}
-                            type="checkbox"
-                            disabled={session.isFull}
-                            className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                            onChange={(e) => {
-                              if (session.isFull && e.target.checked) {
-                                e.target.checked = false;
-                                toast.error(`${session.sessionName} is full and cannot be selected.`);
-                              }
-                            }}
+                          
+                          <Controller
+                            name={`sessionSelections.${sessionIndex}.selected`}
+                            control={control}
+                            render={({ field }) => (
+                              <input
+                                type="checkbox"
+                                checked={!!field.value}
+                                disabled={session.isFull}
+                                className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                                onChange={(e) => {
+                                  const checked = e.target.checked;
+                                  if (session.isFull && checked) {
+                                    e.target.checked = false;
+                                    toast.error(`${session.sessionName} is full and cannot be selected.`);
+                                    return;
+                                  }
+                                  field.onChange(checked);
+                                  onToggleSession(sessionIndex, checked);
+                                }}
+                              />
+                            )}
                           />
+
                           <div className="ml-3 flex-1">
                             <div className="flex items-center justify-between">
                               <h3 className="text-lg font-medium text-gray-900">{session.sessionName}</h3>
