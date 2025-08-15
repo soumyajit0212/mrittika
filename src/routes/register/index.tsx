@@ -605,13 +605,7 @@ function GuestRegistrationPage() {
                               </span>
                               <span className="flex items-center">
                                 <Users className="h-4 w-4 mr-1" />
-                                {session.isFull ? (
-                                  <span className="text-red-600 font-medium">Full ({session.sessionBalanceCapacity}/{session.sessionBalanceCapacity})</span>
-                                ) : (
-                                  <span className="text-green-600">
-                                    {session.availableSpots} of {session.sessionBalanceCapacity} available
-                                  </span>
-                                )}
+
                               </span>
                             </div>
                           </div>
