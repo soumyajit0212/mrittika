@@ -422,7 +422,7 @@ function MemberRegistrationPage() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    Adults *
+                    Adults (13+) *
                   </label>
                   <input
                     {...register("adults", { valueAsNumber: true })}
@@ -437,7 +437,7 @@ function MemberRegistrationPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    Children (5-13)
+                    Children (5-12)
                   </label>
                   <input
                     {...register("children", { valueAsNumber: true })}
@@ -461,7 +461,7 @@ function MemberRegistrationPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    Elders (60+)
+                    Elders (65+)
                   </label>
                   <input
                     {...register("elder", { valueAsNumber: true })}
@@ -529,7 +529,7 @@ function MemberRegistrationPage() {
                     return (
                       <div key={field.id} className="border border-gray-200 rounded-lg p-4">
                         <div className="flex items-center mb-4">
-                          
+
                           <Controller
                             name={`sessionSelections.${sessionIndex}.selected`}
                             control={control}

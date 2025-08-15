@@ -429,7 +429,7 @@ function GuestRegistrationPage() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    Adults *
+                    Adults (12+)*
                   </label>
                   <input
                     {...register("adults", { valueAsNumber: true })}
@@ -468,7 +468,7 @@ function GuestRegistrationPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    Elders (60+)
+                    Elders (65+)
                   </label>
                   <input
                     {...register("elder", { valueAsNumber: true })}
