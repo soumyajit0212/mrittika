@@ -451,6 +451,7 @@ function ExpensesPage() {
                   )}
                 </div>
 
+                {/* <
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
                     Receipt File
@@ -473,7 +474,7 @@ function ExpensesPage() {
                   <p className="mt-1 text-xs text-gray-500">
                     Upload a receipt image or PDF (max 10MB)
                   </p>
-                </div>
+                </div> -->*/}
 
                 <div className="flex justify-end space-x-3 pt-4">
                   <button
