@@ -233,8 +233,9 @@ function GuestRegistrationPage() {
     // Apply 30% discount only to entry costs if all sessions are selected
     const totalSessions = sessionFields.length;
     const allSessionsSelected = totalSessions > 0 && selectedSessionsCount === totalSessions;
-    const twoSessions = selectedSessionsCount >= 2 && selectedSessionsCount < 4;
-    const fourSessions = selectedSessionsCount >=4 && selectedSessionsCount < totalSessions;
+    const twoSessions = selectedSessionsCount ==2 && selectedSessionsCount < 3;
+    const threeSessions = selectedSessionsCount ==3 && selectedSessionsCount < 4;
+    const fourSessions = selectedSessionsCount ==4 && selectedSessionsCount < totalSessions;
     let discountPct="0%";
     let discountF=1;
     let discountApplied = false;
@@ -245,15 +246,20 @@ function GuestRegistrationPage() {
       discountPct="30%";
       discountF=0.7;
     }else if (fourSessions && entryCost > 0){
+      entryCost = entryCost * 0.75;
+      discountPct="25%";
+      discountApplied = true;
+      discountF=0.75;
+    }else if (threeSessions && entryCost > 0){
       entryCost = entryCost * 0.8;
       discountPct="20%";
-      discountApplied = true;
       discountF=0.8;
-    }else if (twoSessions && entryCost > 0){
-      entryCost = entryCost * 0.9;
-      discountPct="10%";
-      discountF=0.9;
       discountApplied = true;
+    }else if (twoSessions && entryCost > 0){
+        entryCost = entryCost * 0.9;
+        discountPct="10%";
+        discountF=0.9;
+        discountApplied = true;
     }
 
     const totalCost = entryCost + foodCost;
@@ -346,7 +352,27 @@ function GuestRegistrationPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div className="flex items-start gap-6">
+      {/* LEFT SPONSOR RAIL (desktop+) */}
+      <aside className="hidden lg:block w-80 xl:w-100">
+        <div className="sticky top-24 space-y-2">
+          <img
+            src="/sponsor1.png"
+            alt="Sponsor 1"
+            className="w-full h-100 object-contain rounded-lg bg-white border border-gray-200 p-3 shadow-sm"
+          />
+          <img
+            src="/sponsor2.png"
+            alt="Sponsor 2"
+            className="w-full h-100 object-contain rounded-lg bg-white border border-gray-200 p-3 shadow-sm"
+          />
+        </div>
+      </aside>
+
+      {/* MAIN CONTENT */}
+      <main className="flex-1 max-w-4xl mx-auto">
+
         {/* Logo Section */}
         <div className="text-center mb-8">
           <img
@@ -546,10 +572,13 @@ function GuestRegistrationPage() {
 
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <p className="text-sm text-blue-800">
-                    <strong>Guest Pricing:</strong> Entry fees apply for all sessions. Select 2 or more sessions to get <strong>10% </strong>off entry fees! Food items are charged at regular prices.
+                    <strong>Guest Pricing:</strong> Entry fees apply for all sessions. Select 2 sessions to get <strong>10% </strong>off entry fees! Food items are charged at regular prices.
                   </p>
                   <p className="text-sm text-blue-800">
-                    <strong>Guest Pricing:</strong> Entry fees apply for all sessions. Select 4 or more sessions to get <strong>20% </strong>off entry fees! Food items are charged at regular prices.
+                     <strong>Guest Pricing:</strong> Entry fees apply for all sessions. Select 3 sessions to get <strong>20% </strong>off entry fees! Food items are charged at regular prices.
+                  </p>
+                  <p className="text-sm text-blue-800">
+                    <strong>Guest Pricing:</strong> Entry fees apply for all sessions. Select 4 sessions to get <strong>25% </strong>off entry fees! Food items are charged at regular prices.
                   </p>
                   <p className="text-sm text-blue-800">
                     <strong>Guest Pricing:</strong> Entry fees apply for all sessions. Select all sessions to get <strong>30% </strong>off entry fees! Food items are charged at regular prices.
@@ -966,7 +995,36 @@ function GuestRegistrationPage() {
             </div>
           </form>
         </div>
-      </div>
+
+        {/* MOBILE-ONLY SPONSORS (optional) */}
+        <div className="lg:hidden mt-8">
+          <h3 className="text-center text-sm font-medium text-gray-600 mb-3">Sponsors</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <img src="/sponsor1.png" alt="Sponsor 1" className="w-full h-24 object-contain bg-white border border-gray-200 p-2 rounded-lg" />
+            <img src="/sponsor2.png" alt="Sponsor 2" className="w-full h-24 object-contain bg-white border border-gray-200 p-2 rounded-lg" />
+            <img src="/sponsor3.png" alt="Sponsor 3" className="w-full h-24 object-contain bg-white border border-gray-200 p-2 rounded-lg" />
+            <img src="/sponsor4.png" alt="Sponsor 4" className="w-full h-24 object-contain bg-white border border-gray-200 p-2 rounded-lg" />
+          </div>
+        </div>
+      </main>
+
+      {/* RIGHT SPONSOR RAIL (desktop+) */}
+      <aside className="hidden lg:block w-80 xl:w-100">
+        <div className="sticky top-24 space-y-4">
+          <img
+            src="/sponsor3.png"
+            alt="Sponsor 3"
+            className="w-full h-100 object-contain rounded-lg bg-white border border-gray-200 p-3 shadow-sm"
+          />
+          <img
+            src="/sponsor4.png"
+            alt="Sponsor 4"
+            className="w-full h-100 object-contain rounded-lg bg-white border border-gray-200 p-3 shadow-sm"
+          />
+        </div>
+      </aside>
+    </div>
+  </div>
     </div>
   );
 }
