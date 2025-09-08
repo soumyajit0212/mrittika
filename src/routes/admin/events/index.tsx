@@ -143,13 +143,25 @@ function EventsPage() {
     }
   };
 
-  const formatDate = (dateString: string) => {
+ /* const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
+      timeZone: 'UTC'
     });
-  };
+  };*/
+
+const formatDate = (iso: string) => {
+  const base = new Date(iso);
+  const utcNoon = new Date(Date.UTC(
+    base.getUTCFullYear(),
+    base.getUTCMonth(),
+    base.getUTCDate(),
+    12 // noon UTC avoids TZ backshift
+  ));
+  return utcNoon.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+};
 
   const getEventStatus = (startDate: string, endDate: string) => {
     const now = new Date();
