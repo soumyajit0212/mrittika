@@ -1,14 +1,14 @@
 import { ReactNode } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useAuthStore } from "~/stores/auth";
-import {
-  Users,
-  Calendar,
-  MapPin,
-  Package,
-  Clock,
-  Receipt,
-  BarChart3,
+import { 
+  Users, 
+  Calendar, 
+  MapPin, 
+  Package, 
+  Clock, 
+  Receipt, 
+  BarChart3, 
   UserPlus,
   LogOut,
   Menu,
@@ -45,6 +45,8 @@ export function Layout({ children }: LayoutProps) {
     { name: "Session Management", href: "/admin/sessions", icon: Clock },
     { name: "Product Management", href: "/admin/products", icon: Package },
     { name: "Expense Management", href: "/admin/expenses", icon: Receipt },
+    { name: "My Account", href: "/admin/users", icon: Users },
+    { name: "Registrations", href: "/member/orders/", icon: Receipt },
     ...(user.role === "ADMIN" ? [
       { name: "Reporting", href: "/admin/reporting", icon: BarChart3 },
     ] : []),
@@ -64,9 +66,9 @@ export function Layout({ children }: LayoutProps) {
                 {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
               </button>
               <Link to="/" className="flex items-center ml-2 lg:ml-0">
-                <img
-                  src="/mrittika.png"
-                  alt="Mrittika Canada Logo"
+                <img 
+                  src="/mrittika.png" 
+                  alt="Mrittika Canada Logo" 
                   className="h-12 w-auto mr-3"
                 />
                 <h1 className="text-2xl font-bold text-red-600">
@@ -74,7 +76,7 @@ export function Layout({ children }: LayoutProps) {
                 </h1>
               </Link>
             </div>
-
+            
             <div className="flex items-center space-x-4">
               <Link
                 to="/register"
@@ -83,7 +85,7 @@ export function Layout({ children }: LayoutProps) {
                 <UserPlus className="h-4 w-4 mr-2" />
                 Guest Registration
               </Link>
-
+              
               {user?.member && (
                 <Link
                   to="/member-register"
@@ -93,7 +95,7 @@ export function Layout({ children }: LayoutProps) {
                   Member Registration
                 </Link>
               )}
-
+              
               <div className="flex items-center space-x-3">
                 <div className="text-right">
                   <p className="text-sm font-medium text-gray-900">
@@ -142,7 +144,7 @@ export function Layout({ children }: LayoutProps) {
 
         {/* Overlay for mobile */}
         {sidebarOpen && (
-          <div
+          <div 
             className="lg:hidden fixed inset-0 z-40 bg-black bg-opacity-50"
             onClick={() => setSidebarOpen(false)}
           />
