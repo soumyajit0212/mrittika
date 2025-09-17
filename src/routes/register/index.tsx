@@ -17,7 +17,7 @@ const registrationSchema = z.object({
   guestEmail: z.string().email().optional().or(z.literal("")),
   guestPhone: z.string().optional(),
   guestLocation: z.string().optional(),
-  adults: z.number().min(1, "At least 1 adult required"),
+  adults: z.number().min(0),
   children: z.number().min(0),
   infants: z.number().min(0),
   elder: z.number().min(0),
@@ -33,7 +33,23 @@ const registrationSchema = z.object({
       quantity: z.number().min(0)
     }))
   }))
-});
+})
+.superRefine((d, ctx) => {
+    const adultCount = Number(d.adults) || 0;
+    const elderCount = Number(d.elder) || 0;
+    if (adultCount + elderCount < 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Add at least 1 Adult or 1 Elder.",
+        path: ["adults"],
+      });
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Add at least 1 Adult or 1 Elder.",
+        path: ["elder"],
+      });
+    }
+  });
 
 type RegistrationForm = z.infer<typeof registrationSchema>;
 
@@ -81,7 +97,7 @@ function GuestRegistrationPage() {
   } = useForm<RegistrationForm>({
     resolver: zodResolver(registrationSchema),
     defaultValues: {
-      adults: 1,
+      adults: 0,
       children: 0,
       infants: 0,
       elder: 0,
@@ -176,7 +192,7 @@ function GuestRegistrationPage() {
         session.productSessionMaps.forEach(psm => {
           psm.product.productTypes.forEach(productType => {
             if (psm.product.productType === 'Entry') {
-              const expectedQuantity = calculateEntryQuantity(productType.productSize, adults || 1, children || 0, elder || 0);
+              const expectedQuantity = calculateEntryQuantity(productType.productSize, adults || 0, children || 0, elder || 0);
 
               // Find the product selection index by looking at the sessionFields structure
               const productSelectionIndex = sessionFields[sessionIndex]?.productSelections?.findIndex(
@@ -470,9 +486,13 @@ const formatDate = (iso: string) => {
                     Adults (12+)*
                   </label>
                   <input
-                    {...register("adults", { valueAsNumber: true })}
+                    {...register("adults", {
+                      valueAsNumber: true,
+                      setValueAs: (v) => (v === "" ? 0 : Number(v)), // avoid NaN when cleared
+                      min: { value: 0, message: "Adults cannot be negative" },
+                    })}
                     type="number"
-                    min="1"
+                    min={0}
                     className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-red-500 focus:border-red-500"
                   />
                   {errors.adults && (

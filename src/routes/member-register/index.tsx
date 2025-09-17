@@ -71,6 +71,7 @@ function MemberRegistrationPage() {
     watch,
     setValue,
     control,
+    getValues, // <-- ADDED
   } = useForm<MemberRegistrationForm>({
     resolver: zodResolver(memberRegistrationSchema),
     defaultValues: {
@@ -93,6 +94,7 @@ function MemberRegistrationPage() {
   const children = watch("children");
   const infants = watch("infants");
   const elder = watch("elder");
+
   // Ensure food UI appears immediately on session toggle, mirroring guest page behavior
   const onToggleSession = (sessionIndex: number, selected: boolean) => {
     const current = getValues();
@@ -619,20 +621,31 @@ const formatDate = (iso: string) => {
                             <div className="bg-amber-50 border-2 border-amber-300 rounded-lg p-4">
                               <div className="flex items-start space-x-3">
                                 <input
-                                  {...register(`sessionSelections.${sessionIndex}.optOutOfFood`)}
                                   type="checkbox"
-                                  className="h-5 w-5 text-red-600 focus:ring-red-500 border-gray-300 rounded mt-0.5"
-                                  onChange={(e) => {
-                                    // Clear food product quantities when opting out
-                                    if (e.target.checked && sessionSelections?.[sessionIndex]?.productSelections) {
-                                      sessionSelections[sessionIndex].productSelections.forEach((productSelection, productIndex) => {
-                                        const product = productsQuery.data?.find(p => p.id === productSelection.productId);
-                                        if (product?.productType === 'Food') {
-                                          setValue(`sessionSelections.${sessionIndex}.productSelections.${productIndex}.quantity`, 0);
+                                  {...register(
+                                    `sessionSelections.${sessionIndex}.optOutOfFood` as const,
+                                    {
+                                      // MOVE logic here so RHF onChange runs too
+                                      onChange: (e) => {
+                                        const checked = (e?.target as HTMLInputElement)?.checked;
+                                        if (checked) {
+                                          const lines =
+                                            sessionSelections?.[sessionIndex]?.productSelections || [];
+                                          lines.forEach((ps: any, productIndex: number) => {
+                                            const product = productsQuery.data?.find(p => p.id === ps.productId);
+                                            if (product?.productType === 'Food') {
+                                              setValue(
+                                                `sessionSelections.${sessionIndex}.productSelections.${productIndex}.quantity` as const,
+                                                0,
+                                                { shouldDirty: true, shouldTouch: true }
+                                              );
+                                            }
+                                          });
                                         }
-                                      });
+                                      },
                                     }
-                                  }}
+                                  )}
+                                  className="h-5 w-5 text-red-600 focus:ring-red-500 border-gray-300 rounded mt-0.5"
                                 />
                                 <div className="flex-1">
                                   <label className="text-base font-semibold text-amber-900 cursor-pointer">
@@ -640,7 +653,7 @@ const formatDate = (iso: string) => {
                                   </label>
                                   <p className="text-sm text-amber-800 mt-1">
                                     Check this box if you only want entry tickets and don't want to order any food for this session.
-                                    As a member, your entry is always <strong>FREE</strong> - this option just hides food selection.
+                                    As a member, your entry is always <strong>FREE</strong> — this option just hides food selection.
                                   </p>
                                   {sessionSelections?.[sessionIndex]?.optOutOfFood && (
                                     <div className="mt-2 p-2 bg-amber-100 rounded text-sm text-amber-900 font-medium">

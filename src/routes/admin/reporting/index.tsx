@@ -15,7 +15,7 @@ export const Route = createFileRoute("/admin/reporting/")({
 });
 
 const exportFormSchema = z.object({
-  exportType: z.enum(["expenses", "events", "sessions", "products", "registrations"]),
+  exportType: z.enum(["expenses", "events", "sessions", "products", "registrations", "foodSessionWise", "foodFamilyWise"]),
   eventId: z.number().optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
