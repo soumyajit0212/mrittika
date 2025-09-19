@@ -10,7 +10,7 @@ export const guestRegistration = baseProcedure
     guestEmail: z.string().email().optional(),
     guestPhone: z.string().optional(),
     guestLocation: z.string().optional(),
-    adults: z.number().min(1),
+    adults: z.number().min(0),
     children: z.number().min(0),
     infants: z.number().min(0),
     elder: z.number().min(0),
