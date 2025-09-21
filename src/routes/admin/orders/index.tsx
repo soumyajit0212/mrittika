@@ -47,6 +47,15 @@ const orderFormSchema = z.object({
   })).min(1, "At least one order line is required"),
 });
 
+const getVisibleOrderLines = (order: any) => {
+  const isMemberOrder = !!order.member && !order.guest;
+  const lines: any[] = order.orderLines || [];
+  // Members get free entry → hide Entry lines in the UI
+  return isMemberOrder
+    ? lines.filter((l) => l?.product?.productType !== "Entry")
+    : lines;
+};
+
 const filterFormSchema = z.object({
   search: z.string().optional(),
   registrationType: z.enum(["all", "guest", "member"]).default("all"),
@@ -171,7 +180,7 @@ function RegistrationManagementPage() {
     }
   });
 
-  
+
   // Track selected event from Filters
   const selectedEventId = watchFilter("eventId");
 
@@ -297,7 +306,7 @@ const {
       filtered = filtered.filter(order => new Date(order.createdAt) <= toDate);
     }
 
-    
+
 
     // Event mapping filter: include orders that have at least one orderLine linked to a session of the selected event
     if (filterValues.eventId) {
@@ -331,13 +340,15 @@ setFilteredOrders(filtered);
     setValue("totalCost", order.totalCost);
     setValue("status", order.status || "PENDING");
 
-    // Initialize order lines
-    const initialOrderLines = order.orderLines.map((line: any) => ({
-      productId: line.productId,
-      productTypeId: line.productTypeId || undefined,
-      quantity: line.quantity,
-      sessionId: line.sessionId || undefined,
-    }));
+    // 🚫 Remove Entry-only lines for member orders
+      const initialOrderLines = order.orderLines
+        .filter((line: any) => !(order.member && line.product?.productType === "Entry"))
+        .map((line: any) => ({
+          productId: line.productId,
+          productTypeId: line.productTypeId || undefined,
+          quantity: line.quantity,
+          sessionId: line.sessionId || undefined,
+        }));
 
     replaceOrderLines(initialOrderLines);
     setIsModalOpen(true);
@@ -671,34 +682,61 @@ setFilteredOrders(filtered);
                           {/* Order Items Preview */}
                           <div>
                             <details className="text-sm text-gray-600">
-                              <summary className="cursor-pointer hover:text-gray-800 font-medium">
-                                View Registration Details ({order.orderLines.length} items)
-                              </summary>
-                              <div className="mt-2 ml-4 space-y-2 bg-gray-50 p-3 rounded">
-                                {order.orderLines.map((line, index) => (
-                                  <div key={index} className="flex justify-between items-center py-1 border-b border-gray-200 last:border-b-0">
-                                    <div className="flex-1">
-                                      <span className="font-medium">{line.product.productName}</span>
-                                      {line.productType && (
-                                        <div className="text-xs text-gray-500 mt-1">
-                                          {line.productType.productSize} •
-                                          {line.productType.productChoice !== 'NONE' && ` ${line.productType.productChoice} •`}
-                                          {line.productType.productPref !== 'NONE' && ` ${line.productType.productPref} •`}
-                                          {line.productType.productSubtype !== 'NONE' && ` ${line.productType.productSubtype}`}
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div className="text-right">
-                                      <div className="text-sm">Qty: {line.quantity}</div>
-                                      {line.productType && (
-                                        <div className="text-sm font-medium">
-                                          {formatCurrency(line.productType.productPrice * line.quantity)}
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
+                             {(() => {
+                               const visible = getVisibleOrderLines(order);
+                               return (
+                                 <>
+                                   <summary className="cursor-pointer hover:text-gray-800 font-medium">
+                                     View Registration Details ({visible.length} items)
+                                   </summary>
+                                   <div className="mt-2 ml-4 space-y-2 bg-gray-50 p-3 rounded">
+                                     {visible.length === 0 ? (
+                                       <div className="text-sm text-gray-500">
+                                         No billable items to display. (Entry is free for members.)
+                                       </div>
+                                     ) : (
+                                       visible.map((line: any, idx: number) => (
+                                         <div
+                                           key={idx}
+                                           className="flex justify-between items-center py-1 border-b border-gray-200 last:border-b-0"
+                                         >
+                                           <div className="flex-1">
+                                             <span className="font-medium">
+                                               {line.product?.productName}
+                                             </span>
+                                             {line.productType && (
+                                               <div className="text-xs text-gray-500 mt-1">
+                                                 {line.productType.productSize}
+                                                 {line.productType.productChoice !== "NONE" &&
+                                                   ` • ${line.productType.productChoice}`}
+                                                 {line.productType.productPref !== "NONE" &&
+                                                   ` • ${line.productType.productPref}`}
+                                                 {line.productType.productSubtype !== "NONE" &&
+                                                   ` • ${line.productType.productSubtype}`}
+                                               </div>
+                                             )}
+                                           </div>
+                                           <div className="text-right">
+                                             <div className="text-sm">Qty: {line.quantity}</div>
+                                             {line.productType && (
+                                               <div className="text-sm font-medium">
+                                                 {new Intl.NumberFormat("en-US", {
+                                                   style: "currency",
+                                                   currency: "CAD",
+                                                 }).format(
+                                                   (line.productType.productPrice || 0) *
+                                                     (line.quantity || 0)
+                                                 )}
+                                               </div>
+                                             )}
+                                           </div>
+                                         </div>
+                                       ))
+                                     )}
+                                   </div>
+                                 </>
+                               );
+                             })()}
                             </details>
                           </div>
                         </div>
