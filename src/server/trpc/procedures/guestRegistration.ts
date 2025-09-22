@@ -215,10 +215,21 @@ export const guestRegistration = baseProcedure
 
     // Apply 30% discount only to entry costs if guest selects all sessions
     const allSessionsSelected = event.sessions.length === sessionIds.length;
+    const twoSessions = sessionIds.length ==2 && sessionIds.length < 3;
+    const threeSessions = sessionIds.length ==3 && sessionIds.length < 4;
+    const fourSessions = sessionIds.length ==4 && sessionIds.length < event.sessions.length;
     let finalEntryCost = entryCost;
     if (allSessionsSelected && entryCost > 0) {
       finalEntryCost = entryCost * 0.7; // 30% discount on entry only
-    } /*else if (sessionIds.length >= 4 && sessionIds.length < event.sessions.length && entryCost > 0){
+    }else if (fourSessions && entryCost > 0){
+        finalEntryCost = entryCost * 0.75; // 25% discount on entry only
+    }else if (threeSessions && entryCost > 0){
+        finalEntryCost = entryCost * 0.8; // 20% discount on entry only
+    }else if (twoSessions && entryCost > 0){
+             finalEntryCost = entryCost * 0.9; // 10% discount on entry only
+    }
+
+/*else if (sessionIds.length >= 4 && sessionIds.length < event.sessions.length && entryCost > 0){
       finalEntryCost = entryCost * 0.8; // 20% discount on entry only
     }else if (sessionIds.length >= 2 && sessionIds.length < 4 && entryCost > 0){
       finalEntryCost = entryCost * 0.9; // 10% discount on entry only
