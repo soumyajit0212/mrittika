@@ -1036,6 +1036,7 @@ const formatDate = (iso: string) => {
             <img src="/sponsor2.png" alt="Sponsor 2" className="w-full h-24 object-contain bg-white border border-gray-200 p-2 rounded-lg" />
             <img src="/sponsor3.png" alt="Sponsor 3" className="w-full h-24 object-contain bg-white border border-gray-200 p-2 rounded-lg" />
             <img src="/sponsor4.png" alt="Sponsor 4" className="w-full h-24 object-contain bg-white border border-gray-200 p-2 rounded-lg" />
+            <img src="/sponsor5.png" alt="Sponsor 5" className="w-full h-24 object-contain bg-white border border-gray-200 p-2 rounded-lg" />
           </div>
         </div>
       </main>
@@ -1053,6 +1054,11 @@ const formatDate = (iso: string) => {
             alt="Sponsor 4"
             className="w-full h-100 object-contain rounded-lg bg-white border border-gray-200 p-3 shadow-sm"
           />
+          <img
+                      src="/sponsor5.png"
+                      alt="Sponsor 5"
+                      className="w-full h-100 object-contain rounded-lg bg-white border border-gray-200 p-3 shadow-sm"
+                    />
         </div>
       </aside>
     </div>
