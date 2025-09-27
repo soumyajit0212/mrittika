@@ -54,7 +54,7 @@ function MemberRegistrationPage() {
   const registrationMutation = useMutation(
     trpc.memberRegistration.mutationOptions({
       onSuccess: (data) => {
-        toast.success(`Registration successful! Transaction ID: ${data.transactionId}`);
+        toast.success(<span>Registration successful! Transaction ID: <strong>{data.transactionId}</strong>.<br/> Please transfer <strong>${data.totalCost.toFixed(2)}</strong> to <strong>mrittikacanada@gmail.com</strong></span>, { duration: 10000 });
         reset();
         setSelectedEventId(null);
       },
