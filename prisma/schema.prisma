@@ -126,6 +126,14 @@ model ProductSessionMap {
   @@unique([sessionId, productId])
 }
 
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  REFUNDED
+}
+
 model OrderMaster {
   id        Int    @id @default(autoincrement())
   guestId   Int?
@@ -134,6 +142,7 @@ model OrderMaster {
   member    Member? @relation(fields: [memberId], references: [id])
   orderDate DateTime @default(now())
   totalCost Float
+  status      OrderStatus  @default(PENDING)
   transactionId String @unique
   orderLines OrderLine[]
   createdAt DateTime @default(now())
