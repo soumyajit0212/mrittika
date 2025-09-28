@@ -285,74 +285,104 @@ function GuestRegistrationPage() {
   const { totalCost, entryCost, foodCost, discountApplied, discountPct,  discountF} = calculateTotalCost();
 
   const onSubmit = async (data: RegistrationForm) => {
-    // Validate dine-in food selections for sessions that haven't opted out of food
-    let validationError = "";
+  let validationError = "";
 
-    // Group selections by person type to validate dine-in requirements
-    const personTypeCounts = {
-      Adult: data.adults,
-      Children: data.children,
-      Elder: data.elder
-    };
-
-    data.sessionSelections
-      .filter(session => session.selected && !session.optOutOfFood)
-      .forEach((session, sessionIndex) => {
-        // Group food selections by person type
-        const foodSelectionsByPersonType: { [key: string]: number } = {};
-
-        session.productSelections?.forEach(productSelection => {
-          if (productSelection.quantity > 0) {
-            const product = productsQuery.data?.find(p => p.id === productSelection.productId);
-            const productType = product?.productTypes.find(pt => pt.id === productSelection.productTypeId);
-
-            if (product?.productType === 'Food' && productType?.productSubtype === 'DINE-IN') {
-              const personType = productType.productSize;
-              if (!foodSelectionsByPersonType[personType]) {
-                foodSelectionsByPersonType[personType] = 0;
-              }
-              foodSelectionsByPersonType[personType] += productSelection.quantity;
-            }
-          }
-        });
-
-        // Check if dine-in selections match person counts
-        Object.entries(foodSelectionsByPersonType).forEach(([personType, totalSelected]) => {
-          const requiredCount = personTypeCounts[personType as keyof typeof personTypeCounts] || 0;
-          if (requiredCount > 0 && totalSelected !== requiredCount) {
-            validationError = `For dine-in meals, you must select exactly ${requiredCount} ${personType.toLowerCase()} meal(s) total per session. Currently selected: ${totalSelected} for ${personType}.`;
-          }
-        });
-      });
-
-    if (validationError) {
-      toast.error(validationError, { duration: 6000 });
-      return;
-    }
-
-    const filteredSessionSelections = data.sessionSelections
-      .filter(session => session.selected)
-      .map(session => ({
-        sessionId: session.sessionId,
-        optOutOfFood: session.optOutOfFood,
-        productSelections: session.productSelections.filter(p => p.quantity > 0)
-      }));
-
-    if (filteredSessionSelections.length === 0) {
-      toast.error("Please select at least one session with products.");
-      return;
-    }
-
-    try {
-      await registrationMutation.mutateAsync({
-        ...data,
-        guestEmail: data.guestEmail || undefined,
-        sessionSelections: filteredSessionSelections
-      });
-    } catch (error) {
-      console.error("Registration error:", error);
-    }
+  // Family counts (minimums by person type)
+  const requiredByType: Record<"Adult" | "Children" | "Elder", number> = {
+    Adult: Number(data.adults || 0),
+    Children: Number(data.children || 0),
+    Elder: Number(data.elder || 0),
   };
+
+  // Aggregate total DINE-IN selections across ALL selected sessions (not opted out)
+  const totalDineInByType: Record<"Adult" | "Children" | "Elder", number> = {
+    Adult: 0,
+    Children: 0,
+    Elder: 0,
+  };
+
+  const selectedFoodSessions = (data.sessionSelections ?? []).filter(
+    (s) => s.selected && !s.optOutOfFood
+  );
+
+  let anyAdultOrChildDineInSelected = false;
+
+  for (const s of selectedFoodSessions) {
+    for (const ps of s.productSelections ?? []) {
+      if (!ps?.productId || !ps?.productTypeId || !ps?.quantity || ps.quantity <= 0) continue;
+      const product = productsQuery.data?.find((p) => p.id === ps.productId);
+      if (!product) continue;
+      const pt = product.productTypes?.find((t) => t.id === ps.productTypeId);
+      if (!pt) continue;
+
+      const isFood = product.productType === "Food";
+      const isDineIn = pt.productSubtype === "DINE-IN";
+      const size = pt.productSize as "Adult" | "Children" | "Elder" | undefined;
+
+      if (isFood && isDineIn && size) {
+        totalDineInByType[size] += Number(ps.quantity);
+        if (size === "Adult" || size === "Children") anyAdultOrChildDineInSelected = true;
+      }
+    }
+  }
+
+  // Guard A: If any Adult/Children dine-in is selected, require Adults+Children >= 1
+  const adultsPlusChildren = (data.adults || 0) + (data.children || 0);
+  if (anyAdultOrChildDineInSelected && adultsPlusChildren < 1) {
+    validationError = "Please add at least 1 Adult or 1 Child when selecting Adult/Children dine-in meals.";
+  }
+
+  // Guard B: Forbid selections for a person type when that family's count is 0
+  (["Adult", "Children", "Elder"] as const).forEach((pt) => {
+    if (validationError) return;
+    const required = requiredByType[pt] || 0;
+    const selected = totalDineInByType[pt] || 0;
+    if (required === 0 && selected > 0) {
+      validationError = `You selected ${selected} ${pt.toLowerCase()} dine-in meal(s), but ${pt.toLowerCase()} count is 0. Please add ${pt.toLowerCase()} in Family Details or remove the selection.`;
+    }
+  });
+
+  // Guard C: CROSS-SESSION MINIMUM — total dine-in per person type must be >= family count
+  (["Adult", "Children", "Elder"] as const).forEach((pt) => {
+    if (validationError) return;
+    const required = requiredByType[pt] || 0;
+    const selected = totalDineInByType[pt] || 0;
+    if (required > 0 && selected < required) {
+      validationError = `Please select at least ${required} ${pt.toLowerCase()} dine-in meal(s) across sessions. Currently selected: ${selected}.`;
+    }
+  });
+
+  // NOTE: removed the previous per-session "exact match" rule.
+  // Now only the cross-session minimum applies (>=), per your requirement.
+
+  if (validationError) {
+    toast.error(validationError, { duration: 6000 });
+    return;
+  }
+
+  const filteredSessionSelections = data.sessionSelections
+    .filter((session) => session.selected)
+    .map((session) => ({
+      sessionId: session.sessionId,
+      optOutOfFood: session.optOutOfFood,
+      productSelections: session.productSelections.filter((p) => p.quantity > 0),
+    }));
+
+  if (filteredSessionSelections.length === 0) {
+    toast.error("Please select at least one session with products.");
+    return;
+  }
+
+  try {
+    await registrationMutation.mutateAsync({
+      ...data,
+      guestEmail: data.guestEmail || undefined,
+      sessionSelections: filteredSessionSelections,
+    });
+  } catch (error) {
+    console.error("Registration error:", error);
+  }
+};;
 
 /*  const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -505,7 +535,7 @@ const formatDate = (iso: string) => {
                     Children (5-12)
                   </label>
                   <input
-                    {...register("children", { valueAsNumber: true })}
+                    {...register("children", { valueAsNumber: true, setValueAs: (v) => (v === "" ? 0 : Number(v)) })}
                     type="number"
                     min="0"
                     className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-red-500 focus:border-red-500"
@@ -671,7 +701,6 @@ const formatDate = (iso: string) => {
                             </div>
                           </div>
                         </div>
-
                         {session.availableSpots <= 5 && session.availableSpots > 0 && (
                           <div className="mb-4 ml-7 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                             <div className="flex items-center">
@@ -688,7 +717,6 @@ const formatDate = (iso: string) => {
                             </div>
                           </div>
                         )}
-
                         {sessionSelections?.[sessionIndex]?.selected && (
                           <div className="ml-7 space-y-4">
                             {/* Enhanced per-session food opt-out */}
@@ -760,10 +788,9 @@ const formatDate = (iso: string) => {
                                         <p className="text-sm text-gray-600 mt-1">{product.productDesc}</p>
                                       </div>
                                     </div>
-
                                     {isFood && !sessionSelections?.[sessionIndex]?.optOutOfFood ? (
                                       // Enhanced food selection UI grouped by person type
-                                      <div className="space-y-5">
+                                      (<div className="space-y-5">
                                         {['Adult', 'Children', 'Elder'].map(personType => {
                                           const personCount = personType === 'Adult' ? adults :
                                                             personType === 'Children' ? children : elder;
@@ -851,10 +878,10 @@ const formatDate = (iso: string) => {
                                             </div>
                                           );
                                         })}
-                                      </div>
+                                      </div>)
                                     ) : (
                                       // Regular product selection for non-food items (Entry tickets)
-                                      <div className="space-y-3">
+                                      (<div className="space-y-3">
                                         {product.productTypes.map(productType => {
                                           const productSelectionIndex = sessionSelections?.[sessionIndex]?.productSelections?.findIndex(
                                             ps => ps.productId === product.id && ps.productTypeId === productType.id
@@ -912,15 +939,15 @@ const formatDate = (iso: string) => {
                                             </div>
                                           );
                                         })}
-                                      </div>
+                                      </div>)
                                     )}
                                   </div>
-                                );
+                                )
                               })}
                           </div>
                         )}
                       </div>
-                    );
+                    )
                   })}
                 </div>
               </div>
@@ -1064,5 +1091,5 @@ const formatDate = (iso: string) => {
     </div>
   </div>
     </div>
-  );
+  )
 }
