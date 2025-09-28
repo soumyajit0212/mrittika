@@ -300,75 +300,113 @@ function MemberRegistrationPage() {
   }
 
   const onSubmit = async (data: MemberRegistrationForm) => {
-    if (!token) {
-      toast.error("Authentication token not found. Please log in again.");
-      return;
-    }
+  if (!token) {
+    toast.error("Authentication token not found. Please log in again.");
+    return;
+  }
 
-    let validationError = "";
-    const personTypeCounts = {
-      Adult: data.adults,
-      Children: data.children,
-      Elder: data.elder,
-    };
+  let validationError = "";
 
-    data.sessionSelections
-      .filter((session) => session.selected && !session.optOutOfFood)
-      .forEach((session) => {
-        const foodSelectionsByPersonType: Record<string, number> = {};
-
-        session.productSelections?.forEach((ps) => {
-          if (ps.quantity > 0) {
-            const product = productsQuery.data?.find((p: any) => p.id === ps.productId);
-            const pt = product?.productTypes.find((t: any) => t.id === ps.productTypeId);
-
-            if (product?.productType === "Food" && pt?.productSubtype === "DINE-IN") {
-              const size = pt.productSize;
-              foodSelectionsByPersonType[size] = (foodSelectionsByPersonType[size] || 0) + ps.quantity;
-            }
-          }
-        });
-
-        Object.entries(foodSelectionsByPersonType).forEach(([size, totalSelected]) => {
-          const requiredCount = personTypeCounts[size as keyof typeof personTypeCounts] || 0;
-          if (requiredCount > 0 && totalSelected !== requiredCount) {
-            validationError = `For dine-in meals, you must select exactly ${requiredCount} ${size.toLowerCase()} meal(s) total per session. Currently selected: ${totalSelected} for ${size}.`;
-          }
-        });
-      });
-
-    if (validationError) {
-      toast.error(validationError, { duration: 6000 });
-      return;
-    }
-
-    const filteredSessionSelections = data.sessionSelections
-      .filter((session) => session.selected)
-      .map((session) => ({
-        sessionId: session.sessionId,
-        optOutOfFood: session.optOutOfFood,
-        productSelections: session.productSelections.filter((p) => p.quantity > 0),
-      }));
-
-    if (filteredSessionSelections.length === 0) {
-      toast.error("Please select at least one session with products.");
-      return;
-    }
-
-    try {
-      await registrationMutation.mutateAsync({
-        authToken: token,
-        eventId: data.eventId,
-        adults: data.adults,
-        children: data.children,
-        infants: data.infants,
-        elder: data.elder,
-        sessionSelections: filteredSessionSelections,
-      });
-    } catch (error) {
-      console.error("Registration error:", error);
-    }
+  // Family counts (minimums by person type)
+  const requiredByType: Record<"Adult" | "Children" | "Elder", number> = {
+    Adult: Number(data.adults || 0),
+    Children: Number(data.children || 0),
+    Elder: Number(data.elder || 0),
   };
+
+  // Aggregate total DINE-IN selections across ALL selected sessions (that did not opt out)
+  const totalDineInByType: Record<"Adult" | "Children" | "Elder", number> = {
+    Adult: 0,
+    Children: 0,
+    Elder: 0,
+  };
+
+  const selectedFoodSessions = (data.sessionSelections ?? []).filter(
+    (s) => s.selected && !s.optOutOfFood
+  );
+
+  let anyAdultOrChildDineInSelected = false;
+
+  for (const s of selectedFoodSessions) {
+    for (const ps of s.productSelections ?? []) {
+      if (!ps?.productId || !ps?.productTypeId || !ps?.quantity || ps.quantity <= 0) continue;
+      const session = sessionsQuery.data?.find((x: any) => x.id === s.sessionId);
+      const psm = session?.productSessionMaps?.find((x: any) => x.product.id === ps.productId);
+      const product = psm?.product || productsQuery.data?.find((p: any) => p.id === ps.productId);
+      if (!product) continue;
+      const pt = product.productTypes?.find((t: any) => t.id === ps.productTypeId);
+      if (!pt) continue;
+
+      const isFood = product.productType === "Food";
+      const isDineIn = pt.productSubtype === "DINE-IN";
+      const size = pt.productSize as "Adult" | "Children" | "Elder" | undefined;
+
+      if (isFood && isDineIn && size) {
+        totalDineInByType[size] += Number(ps.quantity);
+        if (size === "Adult" || size === "Children") anyAdultOrChildDineInSelected = true;
+      }
+    }
+  }
+
+  // Guard A: If any Adult/Children dine-in is selected, require Adults+Children >= 1
+  const adultsPlusChildren = (data.adults || 0) + (data.children || 0);
+  if (anyAdultOrChildDineInSelected && adultsPlusChildren < 1) {
+    validationError = "Please add at least 1 Adult or 1 Child when selecting Adult/Children dine-in meals.";
+  }
+
+  // Guard B: Forbid dine-in selections when that person type count is 0
+  (["Adult", "Children", "Elder"] as const).forEach((pt) => {
+    if (validationError) return;
+    const required = requiredByType[pt] || 0;
+    const selected = totalDineInByType[pt] || 0;
+    if (required === 0 && selected > 0) {
+      validationError = `You selected ${selected} ${pt.toLowerCase()} dine-in meal(s), but ${pt.toLowerCase()} count is 0. Please add ${pt.toLowerCase()} in Family Details or remove the selection.`;
+    }
+  });
+
+  // Guard C (Primary): CROSS-SESSION MINIMUM — total dine-in per person type must be >= family count
+  (["Adult", "Children", "Elder"] as const).forEach((pt) => {
+    if (validationError) return;
+    const required = requiredByType[pt] || 0;
+    const selected = totalDineInByType[pt] || 0;
+    if (required > 0 && selected < required) {
+      validationError = `Please select at least ${required} ${pt.toLowerCase()} dine-in meal(s) across sessions. Currently selected: ${selected}.`;
+    }
+  });
+
+  // If any validation hit, stop here
+  if (validationError) {
+    toast.error(validationError, { duration: 6000 });
+    return;
+  }
+
+  const filteredSessionSelections = data.sessionSelections
+    .filter((session) => session.selected)
+    .map((session) => ({
+      sessionId: session.sessionId,
+      optOutOfFood: session.optOutOfFood,
+      productSelections: session.productSelections.filter((p) => p.quantity > 0),
+    }));
+
+  if (filteredSessionSelections.length === 0) {
+    toast.error("Please select at least one session with products.");
+    return;
+  }
+
+  try {
+    await registrationMutation.mutateAsync({
+      authToken: token,
+      eventId: data.eventId,
+      adults: data.adults,
+      children: data.children,
+      infants: data.infants,
+      elder: data.elder,
+      sessionSelections: filteredSessionSelections,
+    });
+  } catch (error) {
+    console.error("Registration error:", error);
+  }
+};;
 
   const formatDate = (iso: string) => {
     const base = new Date(iso);
@@ -871,7 +909,7 @@ function MemberRegistrationPage() {
 
                                                   {availableOptions.some((pt: any) => pt.productSubtype === "DINE-IN") && (
                                                     <div className="mt-3 p-2 bg-orange-100 rounded text-xs text-orange-800">
-                                                      <strong>Dine-in requirement:</strong> Select exactly {personCount} meal
+                                                      <strong>Dine-in requirement:</strong> Select at least {personCount} meal
                                                       {personCount !== 1 ? "s" : ""} total for {personType.toLowerCase()}s in this
                                                       session (any mix of options).
                                                     </div>
