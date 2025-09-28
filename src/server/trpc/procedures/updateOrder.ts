@@ -50,7 +50,7 @@ export const updateOrder = baseProcedure
           const productTypeIds = orderLines
             .filter(line => line.productTypeId && line.quantity > 0)
             .map(line => line.productTypeId!);
-          
+
           if (productTypeIds.length > 0) {
             const productTypes = await tx.productType.findMany({
               where: { id: { in: productTypeIds } }
