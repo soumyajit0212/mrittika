@@ -3,7 +3,7 @@ import { Layout } from "~/components/Layout";
 import { useAuthStore } from "~/stores/auth";
 import { useTRPC } from "~/trpc/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -14,22 +14,19 @@ import {
   X,
   DollarSign,
   User,
-  Calendar,
   Package,
-  AlertTriangle,
   Download,
   Search,
   Filter,
   Users,
   UserCheck,
-  Clock,
   MapPin,
   Phone,
   Mail,
   FileText,
   Plus,
   Minus,
-  CheckCircle
+  AlertTriangle,
 } from "lucide-react";
 
 export const Route = createFileRoute("/admin/orders/")({
@@ -38,23 +35,20 @@ export const Route = createFileRoute("/admin/orders/")({
 
 const orderFormSchema = z.object({
   totalCost: z.number().min(0, "Total cost must be positive"),
-  status: z.enum(["PENDING", "CONFIRMED", "CANCELLED", "COMPLETED", "REFUNDED"]).optional(),
-  orderLines: z.array(z.object({
-    productId: z.number().min(1, "Please select a product"),
-    productTypeId: z.number().optional(),
-    quantity: z.number().min(0, "Quantity must be non-negative"),
-    sessionId: z.number().optional(),
-  })).min(1, "At least one order line is required"),
+  status: z
+    .enum(["PENDING", "CONFIRMED", "CANCELLED", "COMPLETED", "REFUNDED"])
+    .optional(),
+  orderLines: z
+    .array(
+      z.object({
+        productId: z.number().min(1, "Please select a product"),
+        productTypeId: z.number().optional(),
+        quantity: z.number().min(0, "Quantity must be non-negative"),
+        sessionId: z.number().optional(),
+      }),
+    )
+    .min(1, "At least one order line is required"),
 });
-
-const getVisibleOrderLines = (order: any) => {
-  const isMemberOrder = !!order.member && !order.guest;
-  const lines: any[] = order.orderLines || [];
-  // Members get free entry → hide Entry lines in the UI
-  return isMemberOrder
-    ? lines.filter((l) => l?.product?.productType !== "Entry")
-    : lines;
-};
 
 const filterFormSchema = z.object({
   search: z.string().optional(),
@@ -74,6 +68,15 @@ type OrderForm = z.infer<typeof orderFormSchema>;
 type FilterForm = z.infer<typeof filterFormSchema>;
 type ExportForm = z.infer<typeof exportFormSchema>;
 
+const getVisibleOrderLines = (order: any) => {
+  const isMemberOrder = !!order.member && !order.guest;
+  const lines: any[] = order.orderLines || [];
+  // Members get free entry → hide Entry lines in the UI
+  return isMemberOrder
+    ? lines.filter((l) => l?.product?.productType !== "Entry")
+    : lines;
+};
+
 const getStatusBadge = (status: string) => {
   const statusConfig = {
     PENDING: { color: "bg-yellow-100 text-yellow-800", label: "Pending" },
@@ -81,71 +84,69 @@ const getStatusBadge = (status: string) => {
     CANCELLED: { color: "bg-red-100 text-red-800", label: "Cancelled" },
     COMPLETED: { color: "bg-green-100 text-green-800", label: "Completed" },
     REFUNDED: { color: "bg-gray-100 text-gray-800", label: "Refunded" },
-  };
+  } as const;
 
-  const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.PENDING;
+  const config = (statusConfig as any)[status] || statusConfig.PENDING;
 
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}>
+    <span
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}
+    >
       {config.label}
     </span>
   );
 };
 
 function RegistrationManagementPage() {
-  // All hooks must be called at the top level, before any conditional returns
   const { token, user } = useAuthStore();
   const trpc = useTRPC();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<any>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
-  const [filteredOrders, setFilteredOrders] = useState<any[]>([]);
   const [exportParams, setExportParams] = useState<ExportForm | null>(null);
 
-  const ordersQuery = useQuery(
-    trpc.getOrders.queryOptions({ authToken: token! })
-  );
+  const ordersQuery = useQuery(trpc.getOrders.queryOptions({ authToken: token! }));
+  const eventsQuery = useQuery(trpc.getEvents.queryOptions({ authToken: token! }));
+  const productsQuery = useQuery(trpc.getProducts.queryOptions({ authToken: token! }));
 
-  const eventsQuery = useQuery(
-    trpc.getEvents.queryOptions({ authToken: token! })
-  );
-
-  const productsQuery = useQuery(
-    trpc.getProducts.queryOptions({ authToken: token! })
-  );
-
+  // ✅ Safe spread of export params (won't spread null)
   const exportQuery = useQuery({
     ...trpc.exportToExcel.queryOptions({
       authToken: token!,
       exportType: "registrations",
-      ...exportParams!,
+      ...(exportParams ?? {}),
     }),
     enabled: exportParams !== null,
   });
 
-  const updateOrderMutation = useMutation(trpc.updateOrder.mutationOptions({
-    onSuccess: () => {
-      toast.success("Order updated successfully");
-      setIsModalOpen(false);
-      setEditingOrder(null);
-      reset();
-      ordersQuery.refetch();
-    },
-    onError: (error: any) => {
-      toast.error(error.message || "Failed to update order");
-    },
-  }));
+  const updateOrderMutation = useMutation(
+    trpc.updateOrder.mutationOptions({
+      onSuccess: () => {
+        toast.success("Order updated successfully");
+        setIsModalOpen(false);
+        setEditingOrder(null);
+        reset();
+        ordersQuery.refetch();
+      },
+      onError: (error: any) => {
+        toast.error(error.message || "Failed to update order");
+      },
+    }),
+  );
 
-  const deleteOrderMutation = useMutation(trpc.deleteOrder.mutationOptions({
-    onSuccess: () => {
-      toast.success("Order deleted successfully");
-      ordersQuery.refetch();
-    },
-    onError: (error: any) => {
-      toast.error(error.message || "Failed to delete order");
-    },
-  }));
+  const deleteOrderMutation = useMutation(
+    trpc.deleteOrder.mutationOptions({
+      onSuccess: () => {
+        toast.success("Order deleted successfully");
+        ordersQuery.refetch();
+      },
+      onError: (error: any) => {
+        toast.error(error.message || "Failed to delete order");
+      },
+    }),
+  );
 
   const {
     register,
@@ -158,14 +159,19 @@ function RegistrationManagementPage() {
     resolver: zodResolver(orderFormSchema),
   });
 
-  const { fields: orderLineFields, append: appendOrderLine, remove: removeOrderLine, replace: replaceOrderLines } = useFieldArray({
+  const {
+    fields: orderLineFields,
+    append: appendOrderLine,
+    remove: removeOrderLine,
+    replace: replaceOrderLines,
+  } = useFieldArray({
     control,
-    name: "orderLines"
+    name: "orderLines",
   });
 
   const watchedOrderLines = useWatch({
     control,
-    name: "orderLines"
+    name: "orderLines",
   });
 
   const {
@@ -176,12 +182,15 @@ function RegistrationManagementPage() {
   } = useForm<FilterForm>({
     resolver: zodResolver(filterFormSchema),
     defaultValues: {
-      registrationType: "all"
-    }
+      registrationType: "all",
+    },
   });
 
-
-  // Track selected event from Filters
+  // ✅ Watch individual primitives (stable deps)
+  const search = watchFilter("search");
+  const registrationType = watchFilter("registrationType");
+  const dateFrom = watchFilter("dateFrom");
+  const dateTo = watchFilter("dateTo");
   const selectedEventId = watchFilter("eventId");
 
   // Sessions for selected event (used to map orders -> event via orderLines.sessionId)
@@ -202,7 +211,8 @@ function RegistrationManagementPage() {
     }),
     enabled: !!selectedEventId,
   });
-const {
+
+  const {
     register: registerExport,
     handleSubmit: handleExportSubmit,
     formState: { errors: exportErrors },
@@ -215,121 +225,139 @@ const {
 
     return watchedOrderLines.reduce((total, line) => {
       if (line.quantity > 0 && line.productTypeId) {
-        const product = productsQuery.data?.find(p => p.id === line.productId);
-        const productType = product?.productTypes.find(pt => pt.id === line.productTypeId);
+        const product = productsQuery.data?.find((p) => p.id === line.productId);
+        const productType = product?.productTypes.find(
+          (pt) => pt.id === line.productTypeId,
+        );
         if (productType) {
-          return total + (productType.productPrice * line.quantity);
+          return total + productType.productPrice * line.quantity;
         }
       }
       return total;
     }, 0);
   }, [watchedOrderLines, productsQuery.data]);
 
-  // Auto-calculate total cost when order lines change
+  // Auto-calculate total cost when order lines change (only while modal open)
   useEffect(() => {
     if (isModalOpen && editingOrder) {
       const calculatedTotal = calculateTotalFromOrderLines();
       setValue("totalCost", calculatedTotal);
     }
-  }, [watchedOrderLines, isModalOpen, editingOrder, calculateTotalFromOrderLines, setValue]);
+  }, [
+    watchedOrderLines,
+    isModalOpen,
+    editingOrder,
+    calculateTotalFromOrderLines,
+    setValue,
+  ]);
 
-  // Handle export query results
+  // Handle export query results (one-shot)
   useEffect(() => {
     if (exportQuery.isSuccess && exportQuery.data) {
       const data = exportQuery.data;
 
       // Convert data to CSV format
       const csvContent = [
-        data.headers.join(','),
-        ...data.data.map((row: any[]) => row.map(cell => `"${cell}"`).join(','))
-      ].join('\n');
+        data.headers.join(","),
+        ...data.data.map((row: any[]) =>
+          row.map((cell) => `"${cell}"`).join(","),
+        ),
+      ].join("\n");
 
       // Create and download file
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
       const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `registrations_export_${new Date().toISOString().split('T')[0]}.csv`);
-      link.style.visibility = 'hidden';
+      link.setAttribute("href", url);
+      link.setAttribute(
+        "download",
+        `registrations_export_${new Date().toISOString().split("T")[0]}.csv`,
+      );
+      link.style.visibility = "hidden";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
       toast.success("Registration export completed successfully");
       setShowExportModal(false);
-      setExportParams(null);
+      setExportParams(null); // disable the query
     }
 
     if (exportQuery.isError) {
-      toast.error(exportQuery.error?.message || "Export failed");
+      toast.error((exportQuery.error as any)?.message || "Export failed");
       setExportParams(null);
     }
-  }, [exportQuery.isSuccess, exportQuery.isError, exportQuery.data, exportQuery.error]);
+  }, [
+    exportQuery.isSuccess,
+    exportQuery.isError,
+    exportQuery.data,
+    exportQuery.error,
+  ]);
 
-  // Filter orders based on form inputs
-  useEffect(() => {
-    if (!ordersQuery.data) {
-      setFilteredOrders([]);
-      return;
-    }
-
-    let filtered = [...ordersQuery.data];
-    const filterValues = watchFilter();
+  // ✅ Derive filtered orders with useMemo (no state, no effect → no loop)
+  const filteredOrders = useMemo(() => {
+    const all = ordersQuery.data ?? [];
+    let filtered = [...all];
 
     // Search filter
-    if (filterValues.search) {
-      const searchTerm = filterValues.search.toLowerCase();
-      filtered = filtered.filter(order =>
-        (order.guest?.guestName?.toLowerCase().includes(searchTerm)) ||
-        (order.member?.memberName?.toLowerCase().includes(searchTerm)) ||
-        (order.guest?.guestEmail?.toLowerCase().includes(searchTerm)) ||
-        (order.member?.memberEmail?.toLowerCase().includes(searchTerm)) ||
-        (order.transactionId.toLowerCase().includes(searchTerm))
+    if (search) {
+      const s = search.toLowerCase();
+      filtered = filtered.filter(
+        (order) =>
+          order.guest?.guestName?.toLowerCase().includes(s) ||
+          order.member?.memberName?.toLowerCase().includes(s) ||
+          order.guest?.guestEmail?.toLowerCase().includes(s) ||
+          order.member?.memberEmail?.toLowerCase().includes(s) ||
+          order.transactionId?.toLowerCase().includes(s),
       );
     }
 
     // Registration type filter
-    if (filterValues.registrationType === "guest") {
-      filtered = filtered.filter(order => order.guest);
-    } else if (filterValues.registrationType === "member") {
-      filtered = filtered.filter(order => order.member && !order.guest);
+    if (registrationType === "guest") {
+      filtered = filtered.filter((order) => order.guest);
+    } else if (registrationType === "member") {
+      filtered = filtered.filter((order) => order.member && !order.guest);
     }
 
     // Date range filter
-    if (filterValues.dateFrom) {
-      const fromDate = new Date(filterValues.dateFrom);
-      filtered = filtered.filter(order => new Date(order.createdAt) >= fromDate);
+    if (dateFrom) {
+      const from = new Date(dateFrom);
+      filtered = filtered.filter((o) => new Date(o.createdAt) >= from);
     }
-    if (filterValues.dateTo) {
-      const toDate = new Date(filterValues.dateTo);
-      toDate.setHours(23, 59, 59, 999); // End of day
-      filtered = filtered.filter(order => new Date(order.createdAt) <= toDate);
+    if (dateTo) {
+      const to = new Date(dateTo);
+      to.setHours(23, 59, 59, 999);
+      filtered = filtered.filter((o) => new Date(o.createdAt) <= to);
     }
 
-
-
-    // Event mapping filter: include orders that have at least one orderLine linked to a session of the selected event
-    if (filterValues.eventId) {
-      const sessionIdsForEvent = new Set((sessionsQuery.data || []).map(s => s.id));
-      filtered = filtered.filter(order => {
-        if (!order.orderLines || sessionIdsForEvent.size === 0) return false;
-        return order.orderLines.some(ol => ol.sessionId && sessionIdsForEvent.has(ol.sessionId));
-      });
+    // Event filter: order has at least one line mapped to a session in selected event
+    if (selectedEventId && sessionsQuery.data?.length) {
+      const ids = new Set(sessionsQuery.data.map((s: any) => s.id));
+      filtered = filtered.filter((o) =>
+        (o.orderLines ?? []).some((ol: any) => ol.sessionId && ids.has(ol.sessionId)),
+      );
     }
-setFilteredOrders(filtered);
-  }, [ordersQuery.data, watchFilter()]);
 
-  const onExportSubmit = async (data: ExportForm) => {
-    setExportParams(data);
-  };
+    return filtered;
+  }, [
+    ordersQuery.data,
+    search,
+    registrationType,
+    dateFrom,
+    dateTo,
+    selectedEventId,
+    sessionsQuery.data,
+  ]);
 
-  // Handle conditional rendering after all hooks are called
+  // Guard: only admins allowed
   if (user?.role !== "ADMIN") {
     return (
       <Layout>
         <div className="text-center">
           <h2 className="text-2xl font-bold text-red-600">Access Denied</h2>
-          <p className="text-gray-600 mt-2">You don't have permission to access this page.</p>
+          <p className="text-gray-600 mt-2">
+            You don't have permission to access this page.
+          </p>
         </div>
       </Layout>
     );
@@ -341,14 +369,17 @@ setFilteredOrders(filtered);
     setValue("status", order.status || "PENDING");
 
     // 🚫 Remove Entry-only lines for member orders
-      const initialOrderLines = order.orderLines
-        .filter((line: any) => !(order.member && line.product?.productType === "Entry"))
-        .map((line: any) => ({
-          productId: line.productId,
-          productTypeId: line.productTypeId || undefined,
-          quantity: line.quantity,
-          sessionId: line.sessionId || undefined,
-        }));
+    const initialOrderLines = order.orderLines
+      .filter(
+        (line: any) =>
+          !(order.member && line.product?.productType === "Entry"),
+      )
+      .map((line: any) => ({
+        productId: line.productId,
+        productTypeId: line.productTypeId || undefined,
+        quantity: line.quantity,
+        sessionId: line.sessionId || undefined,
+      }));
 
     replaceOrderLines(initialOrderLines);
     setIsModalOpen(true);
@@ -360,16 +391,21 @@ setFilteredOrders(filtered);
         authToken: token!,
         orderId: editingOrder.id,
         orderLines: data.orderLines,
+        // If your backend schema does not have `status` on OrderMaster,
+        // remove the next line to avoid server-side Prisma error.
         status: data.status,
-        // Don't pass totalCost separately as it will be calculated from order lines
       });
-    } catch (error) {
-      // Error handling is done in mutation callbacks
+    } catch {
+      // handled in mutation callbacks
     }
   };
 
   const handleDeleteOrder = async (orderId: number) => {
-    if (window.confirm("Are you sure you want to delete this order? This action cannot be undone.")) {
+    if (
+      window.confirm(
+        "Are you sure you want to delete this order? This action cannot be undone.",
+      )
+    ) {
       await deleteOrderMutation.mutateAsync({
         authToken: token!,
         orderId,
@@ -377,49 +413,71 @@ setFilteredOrders(filtered);
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
-  };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "CAD",
     }).format(amount);
-  };
 
-  // Calculate registration statistics
+  // Stats derived from memoized filteredOrders
   const totalRegistrations = filteredOrders.length;
-  const guestRegistrations = filteredOrders.filter(order => order.guest).length;
-  const memberRegistrations = filteredOrders.filter(order => order.member && !order.guest).length;
-  const totalRevenue = filteredOrders.reduce((sum, order) => sum + order.totalCost, 0);
-  const totalExpenses = (expensesQuery?.data || []).reduce((sum: number, exp: any) => sum + (exp.amount || 0), 0);
+  const guestRegistrations = filteredOrders.filter((o) => o.guest).length;
+  const memberRegistrations = filteredOrders.filter(
+    (o) => o.member && !o.guest,
+  ).length;
+  const totalRevenue = filteredOrders.reduce(
+    (sum, o) => sum + o.totalCost,
+    0,
+  );
+  const totalExpenses = (expensesQuery?.data || []).reduce(
+    (sum: number, exp: any) => sum + (exp.amount || 0),
+    0,
+  );
   const netRevenue = totalRevenue - totalExpenses;
   const totalPeople = filteredOrders.reduce((sum, order) => {
-    const guest = order.guest;
-    const member = order.member;
-    if (guest) {
-      return sum + (guest.adults || 0) + (guest.children || 0) + (guest.infants || 0) + (guest.elder || 0);
-    } else if (member) {
-      return sum + (member.adults || 0) + (member.children || 0) + (member.infants || 0) + (member.elder || 0);
+    const g = order.guest;
+    const m = order.member;
+    if (g) {
+      return (
+        sum +
+        (g.adults || 0) +
+        (g.children || 0) +
+        (g.infants || 0) +
+        (g.elder || 0)
+      );
+    } else if (m) {
+      return (
+        sum +
+        (m.adults || 0) +
+        (m.children || 0) +
+        (m.infants || 0) +
+        (m.elder || 0)
+      );
     }
     return sum;
   }, 0);
+
+  const onExportSubmit = (data: ExportForm) => setExportParams(data);
 
   return (
     <Layout>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">Registration Management</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Registration Management
+          </h1>
           <div className="flex items-center space-x-4">
             <button
-              onClick={() => setShowFilters(!showFilters)}
+              onClick={() => setShowFilters((s) => !s)}
               className="flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
               <Filter className="h-4 w-4 mr-2" />
@@ -441,9 +499,16 @@ setFilteredOrders(filtered);
             <div className="flex items-center">
               <Users className="h-8 w-8 text-blue-600" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Registrations</p>
-                <p className="text-2xl font-bold text-gray-900">{totalRegistrations}</p>
-                <p className="text-xs text-gray-500">Orders: {formatCurrency(totalRevenue)} • Expenses: {formatCurrency(totalExpenses)}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Registrations
+                </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {totalRegistrations}
+                </p>
+                <p className="text-xs text-gray-500">
+                  Orders: {formatCurrency(totalRevenue)} • Expenses:{" "}
+                  {formatCurrency(totalExpenses)}
+                </p>
               </div>
             </div>
           </div>
@@ -452,8 +517,12 @@ setFilteredOrders(filtered);
             <div className="flex items-center">
               <User className="h-8 w-8 text-green-600" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Guest | Member</p>
-                <p className="text-2xl font-bold text-gray-900">{guestRegistrations} | {memberRegistrations}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Guest | Member
+                </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {guestRegistrations} | {memberRegistrations}
+                </p>
               </div>
             </div>
           </div>
@@ -463,7 +532,9 @@ setFilteredOrders(filtered);
               <UserCheck className="h-8 w-8 text-purple-600" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total People</p>
-                <p className="text-2xl font-bold text-gray-900">{totalPeople}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {totalPeople}
+                </p>
               </div>
             </div>
           </div>
@@ -472,8 +543,12 @@ setFilteredOrders(filtered);
             <div className="flex items-center">
               <DollarSign className="h-8 w-8 text-red-600" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(netRevenue)}</p>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Revenue
+                </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {formatCurrency(netRevenue)}
+                </p>
               </div>
             </div>
           </div>
@@ -483,7 +558,9 @@ setFilteredOrders(filtered);
         {showFilters && (
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Filter Registrations</h3>
+              <h3 className="text-lg font-medium text-gray-900">
+                Filter Registrations
+              </h3>
               <button
                 onClick={() => {
                   resetFilter();
@@ -497,7 +574,9 @@ setFilteredOrders(filtered);
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Search</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  Search
+                </label>
                 <div className="mt-1 relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
@@ -510,7 +589,9 @@ setFilteredOrders(filtered);
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Registration Type</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  Registration Type
+                </label>
                 <select
                   {...registerFilter("registrationType")}
                   className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-red-500 focus:border-red-500"
@@ -519,9 +600,12 @@ setFilteredOrders(filtered);
                   <option value="guest">Guest Only</option>
                   <option value="member">Member Only</option>
                 </select>
+              </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Event</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  Event
+                </label>
                 <select
                   {...registerFilter("eventId", { valueAsNumber: true })}
                   className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-red-500 focus:border-red-500"
@@ -534,10 +618,11 @@ setFilteredOrders(filtered);
                   ))}
                 </select>
               </div>
-              </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">From Date</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  From Date
+                </label>
                 <input
                   {...registerFilter("dateFrom")}
                   type="date"
@@ -546,7 +631,9 @@ setFilteredOrders(filtered);
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">To Date</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  To Date
+                </label>
                 <input
                   {...registerFilter("dateTo")}
                   type="date"
@@ -559,14 +646,16 @@ setFilteredOrders(filtered);
 
         {ordersQuery.isLoading ? (
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto" />
             <p className="mt-2 text-gray-600">Loading registrations...</p>
           </div>
         ) : filteredOrders.length === 0 ? (
           <div className="text-center py-12">
             <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-500">
-              {ordersQuery.data?.length === 0 ? "No registrations found" : "No registrations match your filters"}
+              {ordersQuery.data?.length === 0
+                ? "No registrations found"
+                : "No registrations match your filters"}
             </p>
             {ordersQuery.data?.length !== 0 && (
               <button
@@ -607,38 +696,50 @@ setFilteredOrders(filtered);
                                   </span>
                                 </div>
                               )}
-                              <span className="text-sm text-gray-500">#{order.id}</span>
+                              <span className="text-sm text-gray-500">
+                                #{order.id}
+                              </span>
                               {order.status && (
-                                <div className="ml-2">
-                                  {getStatusBadge(order.status)}
-                                </div>
+                                <div className="ml-2">{getStatusBadge(order.status)}</div>
                               )}
                             </div>
                             <div className="text-right">
-                              <p className="text-sm font-medium text-gray-900">{formatCurrency(order.totalCost)}</p>
-                              <p className="text-xs text-gray-500">{formatDate(order.createdAt)}</p>
+                              <p className="text-sm font-medium text-gray-900">
+                                {formatCurrency(order.totalCost)}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {formatDate(order.createdAt)}
+                              </p>
                             </div>
                           </div>
 
                           {/* Contact Information */}
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
                             <div>
-                              <h4 className="text-sm font-medium text-gray-900 mb-2">Contact Information</h4>
+                              <h4 className="text-sm font-medium text-gray-900 mb-2">
+                                Contact Information
+                              </h4>
                               <div className="space-y-1">
                                 <div className="flex items-center text-sm text-gray-600">
                                   <User className="h-4 w-4 mr-2" />
-                                  {order.guest?.guestName || order.member?.memberName || "Unknown"}
+                                  {order.guest?.guestName ||
+                                    order.member?.memberName ||
+                                    "Unknown"}
                                 </div>
-                                {(order.guest?.guestEmail || order.member?.memberEmail) && (
+                                {(order.guest?.guestEmail ||
+                                  order.member?.memberEmail) && (
                                   <div className="flex items-center text-sm text-gray-600">
                                     <Mail className="h-4 w-4 mr-2" />
-                                    {order.guest?.guestEmail || order.member?.memberEmail}
+                                    {order.guest?.guestEmail ||
+                                      order.member?.memberEmail}
                                   </div>
                                 )}
-                                {(order.guest?.guestPhone || order.member?.memberPhone) && (
+                                {(order.guest?.guestPhone ||
+                                  order.member?.memberPhone) && (
                                   <div className="flex items-center text-sm text-gray-600">
                                     <Phone className="h-4 w-4 mr-2" />
-                                    {order.guest?.guestPhone || order.member?.memberPhone}
+                                    {order.guest?.guestPhone ||
+                                      order.member?.memberPhone}
                                   </div>
                                 )}
                                 {order.guest?.guestLocation && (
@@ -651,18 +752,42 @@ setFilteredOrders(filtered);
                             </div>
 
                             <div>
-                              <h4 className="text-sm font-medium text-gray-900 mb-2">Family Details</h4>
+                              <h4 className="text-sm font-medium text-gray-900 mb-2">
+                                Family Details
+                              </h4>
                               <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
-                                <div>Adults: {order.guest?.adults || order.member?.adults || 0}</div>
-                                <div>Children: {order.guest?.children || order.member?.children || 0}</div>
-                                <div>Infants: {order.guest?.infants || order.member?.infants || 0}</div>
-                                <div>Elders: {order.guest?.elder || order.member?.elder || 0}</div>
+                                <div>
+                                  Adults:{" "}
+                                  {order.guest?.adults || order.member?.adults || 0}
+                                </div>
+                                <div>
+                                  Children:{" "}
+                                  {order.guest?.children ||
+                                    order.member?.children ||
+                                    0}
+                                </div>
+                                <div>
+                                  Infants:{" "}
+                                  {order.guest?.infants ||
+                                    order.member?.infants ||
+                                    0}
+                                </div>
+                                <div>
+                                  Elders:{" "}
+                                  {order.guest?.elder || order.member?.elder || 0}
+                                </div>
                               </div>
                               <div className="mt-1 text-sm font-medium text-gray-900">
-                                Total: {(order.guest?.adults || order.member?.adults || 0) +
-                                        (order.guest?.children || order.member?.children || 0) +
-                                        (order.guest?.infants || order.member?.infants || 0) +
-                                        (order.guest?.elder || order.member?.elder || 0)} people
+                                Total:{" "}
+                                {(order.guest?.adults || order.member?.adults || 0) +
+                                  (order.guest?.children ||
+                                    order.member?.children ||
+                                    0) +
+                                  (order.guest?.infants ||
+                                    order.member?.infants ||
+                                    0) +
+                                  (order.guest?.elder || order.member?.elder || 0)}{" "}
+                                people
                               </div>
                             </div>
                           </div>
@@ -682,61 +807,64 @@ setFilteredOrders(filtered);
                           {/* Order Items Preview */}
                           <div>
                             <details className="text-sm text-gray-600">
-                             {(() => {
-                               const visible = getVisibleOrderLines(order);
-                               return (
-                                 <>
-                                   <summary className="cursor-pointer hover:text-gray-800 font-medium">
-                                     View Registration Details ({visible.length} items)
-                                   </summary>
-                                   <div className="mt-2 ml-4 space-y-2 bg-gray-50 p-3 rounded">
-                                     {visible.length === 0 ? (
-                                       <div className="text-sm text-gray-500">
-                                         No billable items to display. (Entry is free for members.)
-                                       </div>
-                                     ) : (
-                                       visible.map((line: any, idx: number) => (
-                                         <div
-                                           key={idx}
-                                           className="flex justify-between items-center py-1 border-b border-gray-200 last:border-b-0"
-                                         >
-                                           <div className="flex-1">
-                                             <span className="font-medium">
-                                               {line.product?.productName}
-                                             </span>
-                                             {line.productType && (
-                                               <div className="text-xs text-gray-500 mt-1">
-                                                 {line.productType.productSize}
-                                                 {line.productType.productChoice !== "NONE" &&
-                                                   ` • ${line.productType.productChoice}`}
-                                                 {line.productType.productPref !== "NONE" &&
-                                                   ` • ${line.productType.productPref}`}
-                                                 {line.productType.productSubtype !== "NONE" &&
-                                                   ` • ${line.productType.productSubtype}`}
-                                               </div>
-                                             )}
-                                           </div>
-                                           <div className="text-right">
-                                             <div className="text-sm">Qty: {line.quantity}</div>
-                                             {line.productType && (
-                                               <div className="text-sm font-medium">
-                                                 {new Intl.NumberFormat("en-US", {
-                                                   style: "currency",
-                                                   currency: "CAD",
-                                                 }).format(
-                                                   (line.productType.productPrice || 0) *
-                                                     (line.quantity || 0)
-                                                 )}
-                                               </div>
-                                             )}
-                                           </div>
-                                         </div>
-                                       ))
-                                     )}
-                                   </div>
-                                 </>
-                               );
-                             })()}
+                              {(() => {
+                                const visible = getVisibleOrderLines(order);
+                                return (
+                                  <>
+                                    <summary className="cursor-pointer hover:text-gray-800 font-medium">
+                                      View Registration Details ({visible.length} items)
+                                    </summary>
+                                    <div className="mt-2 ml-4 space-y-2 bg-gray-50 p-3 rounded">
+                                      {visible.length === 0 ? (
+                                        <div className="text-sm text-gray-500">
+                                          No billable items to display. (Entry is free for
+                                          members.)
+                                        </div>
+                                      ) : (
+                                        visible.map((line: any, idx: number) => (
+                                          <div
+                                            key={idx}
+                                            className="flex justify-between items-center py-1 border-b border-gray-200 last:border-b-0"
+                                          >
+                                            <div className="flex-1">
+                                              <span className="font-medium">
+                                                {line.product?.productName}
+                                              </span>
+                                              {line.productType && (
+                                                <div className="text-xs text-gray-500 mt-1">
+                                                  {line.productType.productSize}
+                                                  {line.productType.productChoice !==
+                                                    "NONE" && ` • ${line.productType.productChoice}`}
+                                                  {line.productType.productPref !== "NONE" &&
+                                                    ` • ${line.productType.productPref}`}
+                                                  {line.productType.productSubtype !== "NONE" &&
+                                                    ` • ${line.productType.productSubtype}`}
+                                                </div>
+                                              )}
+                                            </div>
+                                            <div className="text-right">
+                                              <div className="text-sm">
+                                                Qty: {line.quantity}
+                                              </div>
+                                              {line.productType && (
+                                                <div className="text-sm font-medium">
+                                                  {new Intl.NumberFormat("en-US", {
+                                                    style: "currency",
+                                                    currency: "CAD",
+                                                  }).format(
+                                                    (line.productType.productPrice || 0) *
+                                                      (line.quantity || 0),
+                                                  )}
+                                                </div>
+                                              )}
+                                            </div>
+                                          </div>
+                                        ))
+                                      )}
+                                    </div>
+                                  </>
+                                );
+                              })()}
                             </details>
                           </div>
                         </div>
@@ -786,7 +914,8 @@ setFilteredOrders(filtered);
                 <div className="flex items-center">
                   <AlertTriangle className="h-5 w-5 text-yellow-600 mr-2" />
                   <p className="text-sm text-yellow-800">
-                    <strong>Warning:</strong> Editing orders may affect customer records. Use with caution.
+                    <strong>Warning:</strong> Editing orders may affect customer
+                    records. Use with caution.
                   </p>
                 </div>
               </div>
@@ -797,7 +926,8 @@ setFilteredOrders(filtered);
                     Customer
                   </label>
                   <div className="mt-1 p-2 bg-gray-50 rounded-md text-sm text-gray-700">
-                    {editingOrder.guest?.guestName || editingOrder.member?.memberName}
+                    {editingOrder.guest?.guestName ||
+                      editingOrder.member?.memberName}
                   </div>
                 </div>
 
@@ -825,11 +955,13 @@ setFilteredOrders(filtered);
                     <option value="REFUNDED">Refunded</option>
                   </select>
                   {errors.status && (
-                    <p className="mt-1 text-sm text-red-600">{errors.status.message}</p>
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.status.message}
+                    </p>
                   )}
                 </div>
 
-                {/* Order Lines Section */}
+                {/* Order Lines */}
                 <div>
                   <div className="flex justify-between items-center mb-3">
                     <label className="block text-sm font-medium text-gray-700">
@@ -837,7 +969,14 @@ setFilteredOrders(filtered);
                     </label>
                     <button
                       type="button"
-                      onClick={() => appendOrderLine({ productId: 0, productTypeId: undefined, quantity: 1, sessionId: undefined })}
+                      onClick={() =>
+                        appendOrderLine({
+                          productId: 0,
+                          productTypeId: undefined,
+                          quantity: 1,
+                          sessionId: undefined,
+                        })
+                      }
                       className="flex items-center px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
                     >
                       <Plus className="h-3 w-3 mr-1" />
@@ -847,20 +986,28 @@ setFilteredOrders(filtered);
 
                   <div className="space-y-3 max-h-60 overflow-y-auto">
                     {orderLineFields.map((field, index) => (
-                      <div key={field.id} className="border border-gray-200 rounded-lg p-3">
+                      <div
+                        key={field.id}
+                        className="border border-gray-200 rounded-lg p-3"
+                      >
                         <div className="flex items-start space-x-3">
                           <div className="flex-1 space-y-3">
-                            {/* Product Selection */}
+                            {/* Product */}
                             <div>
                               <label className="block text-xs font-medium text-gray-700 mb-1">
                                 Product
                               </label>
                               <select
-                                {...register(`orderLines.${index}.productId`, { valueAsNumber: true })}
+                                {...register(`orderLines.${index}.productId`, {
+                                  valueAsNumber: true,
+                                })}
                                 className="block w-full text-sm border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-red-500 focus:border-red-500"
-                                onChange={(e) => {
+                                onChange={() => {
                                   // Reset product type when product changes
-                                  setValue(`orderLines.${index}.productTypeId`, undefined);
+                                  setValue(
+                                    `orderLines.${index}.productTypeId`,
+                                    undefined,
+                                  );
                                 }}
                               >
                                 <option value={0}>Select a product...</option>
@@ -871,35 +1018,56 @@ setFilteredOrders(filtered);
                                 ))}
                               </select>
                               {errors.orderLines?.[index]?.productId && (
-                                <p className="mt-1 text-xs text-red-600">{errors.orderLines[index]?.productId?.message}</p>
+                                <p className="mt-1 text-xs text-red-600">
+                                  {
+                                    errors.orderLines[index]?.productId
+                                      ?.message as any
+                                  }
+                                </p>
                               )}
                             </div>
 
-                            {/* Product Type Selection */}
-                            {watchedOrderLines?.[index]?.productId && watchedOrderLines[index].productId > 0 && (
-                              <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">
-                                  Product Type
-                                </label>
-                                <select
-                                  {...register(`orderLines.${index}.productTypeId`, { valueAsNumber: true })}
-                                  className="block w-full text-sm border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-red-500 focus:border-red-500"
-                                >
-                                  <option value="">Select type...</option>
-                                  {productsQuery.data
-                                    ?.find(p => p.id === watchedOrderLines[index].productId)
-                                    ?.productTypes.map((productType) => (
-                                      <option key={productType.id} value={productType.id}>
-                                        {productType.productSize}
-                                        {productType.productChoice !== 'NONE' && ` - ${productType.productChoice}`}
-                                        {productType.productPref !== 'NONE' && ` - ${productType.productPref}`}
-                                        {productType.productSubtype !== 'NONE' && ` (${productType.productSubtype})`}
-                                        {' - $' + productType.productPrice.toFixed(2)}
-                                      </option>
-                                    ))}
-                                </select>
-                              </div>
-                            )}
+                            {/* Product Type */}
+                            {watchedOrderLines?.[index]?.productId &&
+                              watchedOrderLines[index].productId > 0 && (
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                                    Product Type
+                                  </label>
+                                  <select
+                                    {...register(
+                                      `orderLines.${index}.productTypeId`,
+                                      { valueAsNumber: true },
+                                    )}
+                                    className="block w-full text-sm border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-red-500 focus:border-red-500"
+                                  >
+                                    <option value="">Select type...</option>
+                                    {productsQuery.data
+                                      ?.find(
+                                        (p) =>
+                                          p.id ===
+                                          watchedOrderLines[index].productId,
+                                      )
+                                      ?.productTypes.map((productType) => (
+                                        <option
+                                          key={productType.id}
+                                          value={productType.id}
+                                        >
+                                          {productType.productSize}
+                                          {productType.productChoice !== "NONE" &&
+                                            ` - ${productType.productChoice}`}
+                                          {productType.productPref !== "NONE" &&
+                                            ` - ${productType.productPref}`}
+                                          {productType.productSubtype !==
+                                            "NONE" &&
+                                            ` (${productType.productSubtype})`}
+                                          {" - $" +
+                                            productType.productPrice.toFixed(2)}
+                                        </option>
+                                      ))}
+                                  </select>
+                                </div>
+                              )}
 
                             {/* Quantity */}
                             <div>
@@ -907,28 +1075,51 @@ setFilteredOrders(filtered);
                                 Quantity
                               </label>
                               <input
-                                {...register(`orderLines.${index}.quantity`, { valueAsNumber: true })}
+                                {...register(
+                                  `orderLines.${index}.quantity`,
+                                  { valueAsNumber: true },
+                                )}
                                 type="number"
                                 min="0"
                                 className="block w-full text-sm border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-red-500 focus:border-red-500"
                               />
                               {errors.orderLines?.[index]?.quantity && (
-                                <p className="mt-1 text-xs text-red-600">{errors.orderLines[index]?.quantity?.message}</p>
+                                <p className="mt-1 text-xs text-red-600">
+                                  {
+                                    errors.orderLines[index]?.quantity
+                                      ?.message as any
+                                  }
+                                </p>
                               )}
                             </div>
 
                             {/* Line Total */}
-                            {watchedOrderLines?.[index]?.productTypeId && watchedOrderLines[index].quantity > 0 && (
-                              <div className="text-xs text-gray-600">
-                                Line Total: {formatCurrency(
-                                  (() => {
-                                    const product = productsQuery.data?.find(p => p.id === watchedOrderLines[index].productId);
-                                    const productType = product?.productTypes.find(pt => pt.id === watchedOrderLines[index].productTypeId);
-                                    return productType ? productType.productPrice * watchedOrderLines[index].quantity : 0;
-                                  })()
-                                )}
-                              </div>
-                            )}
+                            {watchedOrderLines?.[index]?.productTypeId &&
+                              watchedOrderLines[index].quantity > 0 && (
+                                <div className="text-xs text-gray-600">
+                                  Line Total:{" "}
+                                  {formatCurrency(
+                                    (() => {
+                                      const product = productsQuery.data?.find(
+                                        (p) =>
+                                          p.id ===
+                                          watchedOrderLines[index].productId,
+                                      );
+                                      const productType =
+                                        product?.productTypes.find(
+                                          (pt) =>
+                                            pt.id ===
+                                            watchedOrderLines[index]
+                                              .productTypeId,
+                                        );
+                                      return productType
+                                        ? productType.productPrice *
+                                            watchedOrderLines[index].quantity
+                                        : 0;
+                                    })(),
+                                  )}
+                                </div>
+                              )}
                           </div>
 
                           {/* Remove Button */}
@@ -946,11 +1137,13 @@ setFilteredOrders(filtered);
                   </div>
 
                   {errors.orderLines && (
-                    <p className="mt-1 text-sm text-red-600">{errors.orderLines.message}</p>
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.orderLines.message as any}
+                    </p>
                   )}
                 </div>
 
-                {/* Total Cost Display */}
+                {/* Total Cost */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
                     Total Cost
@@ -1043,8 +1236,9 @@ setFilteredOrders(filtered);
 
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                   <p className="text-sm text-blue-800">
-                    <strong>Export includes:</strong> Registration details, contact information,
-                    family details, session information, product selections, and pricing data.
+                    <strong>Export includes:</strong> Registration details, contact
+                    information, family details, session information, product selections,
+                    and pricing data.
                   </p>
                 </div>
 
@@ -1072,3 +1266,5 @@ setFilteredOrders(filtered);
     </Layout>
   );
 }
+
+export default RegistrationManagementPage;
