@@ -287,79 +287,50 @@ function GuestRegistrationPage() {
   const onSubmit = async (data: RegistrationForm) => {
   let validationError = "";
 
-  // Family counts (minimums by person type)
-  const requiredByType: Record<"Adult" | "Children" | "Elder", number> = {
-    Adult: Number(data.adults || 0),
-    Children: Number(data.children || 0),
-    Elder: Number(data.elder || 0),
-  };
+  // Total headcount (Adults + Children + Elder) — infants excluded
+  const totalPeople = Number(data.adults || 0) + Number(data.children || 0) + Number(data.elder || 0);
 
-  // Aggregate total DINE-IN selections across ALL selected sessions (not opted out)
-  const totalDineInByType: Record<"Adult" | "Children" | "Elder", number> = {
-    Adult: 0,
-    Children: 0,
-    Elder: 0,
-  };
+  // Consider only sessions that are selected and NOT opted out of food
+  const selectedFoodSessions = (data.sessionSelections ?? []).filter(s => s.selected && !s.optOutOfFood);
 
-  const selectedFoodSessions = (data.sessionSelections ?? []).filter(
-    (s) => s.selected && !s.optOutOfFood
-  );
+  // If there are no food-enabled sessions, skip food validations entirely
+  if (selectedFoodSessions.length > 0) {
+    // Sum ONLY DINE-IN food selections across all selected, food-enabled sessions
+    let totalDineInMeals = 0;
 
-  let anyAdultOrChildDineInSelected = false;
+    for (const s of selectedFoodSessions) {
+      for (const ps of s.productSelections ?? []) {
+        if (!ps?.productId || !ps?.productTypeId || !ps?.quantity || ps.quantity <= 0) continue;
 
-  for (const s of selectedFoodSessions) {
-    for (const ps of s.productSelections ?? []) {
-      if (!ps?.productId || !ps?.productTypeId || !ps?.quantity || ps.quantity <= 0) continue;
-      const product = productsQuery.data?.find((p) => p.id === ps.productId);
-      if (!product) continue;
-      const pt = product.productTypes?.find((t) => t.id === ps.productTypeId);
-      if (!pt) continue;
+        const product = productsQuery.data?.find(p => p.id === ps.productId);
+        if (!product) continue;
+        const pt = product.productTypes?.find(t => t.id === ps.productTypeId);
+        if (!pt) continue;
 
-      const isFood = product.productType === "Food";
-      const isDineIn = pt.productSubtype === "DINE-IN";
-      const size = pt.productSize as "Adult" | "Children" | "Elder" | undefined;
+        const isFood = product.productType === "Food";
+        const isDineIn = pt.productSubtype === "DINE-IN";
 
-      if (isFood && isDineIn && size) {
-        totalDineInByType[size] += Number(ps.quantity);
-        if (size === "Adult" || size === "Children") anyAdultOrChildDineInSelected = true;
+        if (isFood && isDineIn) {
+          totalDineInMeals += Number(ps.quantity);
+        }
+        // TAKE-AWAY selections have NO validation per requirement
+      }
+    }
+
+    // Apply equality rule ONLY if user has selected any DINE-IN meals
+    if (totalDineInMeals > 0) {
+      if (totalDineInMeals !== totalPeople) {
+        validationError = `For dine-in meals, the total number of meals selected across sessions must equal the total number of attendees (Adults + Children + Elder = ${totalPeople}). Currently selected dine-in meals: ${totalDineInMeals}.`;
       }
     }
   }
 
-  // Guard A: If any Adult/Children dine-in is selected, require Adults+Children >= 1
-  const adultsPlusChildren = (data.adults || 0) + (data.children || 0);
-  if (anyAdultOrChildDineInSelected && adultsPlusChildren < 1) {
-    validationError = "Please add at least 1 Adult or 1 Child when selecting Adult/Children dine-in meals.";
-  }
-
-  // Guard B: Forbid selections for a person type when that family's count is 0
-  (["Adult", "Children", "Elder"] as const).forEach((pt) => {
-    if (validationError) return;
-    const required = requiredByType[pt] || 0;
-    const selected = totalDineInByType[pt] || 0;
-    if (required === 0 && selected > 0) {
-      validationError = `You selected ${selected} ${pt.toLowerCase()} dine-in meal(s), but ${pt.toLowerCase()} count is 0. Please add ${pt.toLowerCase()} in Family Details or remove the selection.`;
-    }
-  });
-
-  // Guard C: CROSS-SESSION MINIMUM — total dine-in per person type must be >= family count
-  (["Adult", "Children", "Elder"] as const).forEach((pt) => {
-    if (validationError) return;
-    const required = requiredByType[pt] || 0;
-    const selected = totalDineInByType[pt] || 0;
-    if (required > 0 && selected < required) {
-      validationError = `Please select at least ${required} ${pt.toLowerCase()} dine-in meal(s) across sessions. Currently selected: ${selected}.`;
-    }
-  });
-
-  // NOTE: removed the previous per-session "exact match" rule.
-  // Now only the cross-session minimum applies (>=), per your requirement.
-
   if (validationError) {
-    toast.error(validationError, { duration: 6000 });
+    toast.error(validationError, { duration: 7000 });
     return;
   }
 
+  // Proceed with existing submission: filter selections and post
   const filteredSessionSelections = data.sessionSelections
     .filter((session) => session.selected)
     .map((session) => ({
@@ -382,7 +353,7 @@ function GuestRegistrationPage() {
   } catch (error) {
     console.error("Registration error:", error);
   }
-};;
+};;;
 
 /*  const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
