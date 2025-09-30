@@ -289,7 +289,18 @@ function GuestRegistrationPage() {
 
   const totalPeople = Number(data.adults || 0) + Number(data.children || 0) + Number(data.elder || 0);
 
-  const selectedFoodSessions = (data.sessionSelections ?? []).filter(s => s.selected && !s.optOutOfFood);
+  const selectedFoodSessions = (data.sessionSelections ?? [])
+    .filter(s => s.selected && !s.optOutOfFood)
+    .filter(s => {
+      const session = sessionsQuery.data?.find((x: any) => x.id === s.sessionId);
+      const hasDineIn = session?.productSessionMaps?.some((psm: any) => {
+        const product = psm?.product;
+        if (!product || product.productType !== "Food") return false;
+        return product.productTypes?.some((pt: any) => pt.productSubtype === "DINE-IN");
+      });
+      return !!hasDineIn;
+    });
+
   const foodSessionsCount = selectedFoodSessions.length;
 
   if (foodSessionsCount > 0) {
