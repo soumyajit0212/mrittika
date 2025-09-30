@@ -287,40 +287,33 @@ function GuestRegistrationPage() {
   const onSubmit = async (data: RegistrationForm) => {
   let validationError = "";
 
-  // Total headcount (Adults + Children + Elder) — infants excluded
   const totalPeople = Number(data.adults || 0) + Number(data.children || 0) + Number(data.elder || 0);
 
-  // Consider only sessions that are selected and NOT opted out of food
   const selectedFoodSessions = (data.sessionSelections ?? []).filter(s => s.selected && !s.optOutOfFood);
+  const foodSessionsCount = selectedFoodSessions.length;
 
-  // If there are no food-enabled sessions, skip food validations entirely
-  if (selectedFoodSessions.length > 0) {
-    // Sum ONLY DINE-IN food selections across all selected, food-enabled sessions
+  if (foodSessionsCount > 0) {
     let totalDineInMeals = 0;
 
     for (const s of selectedFoodSessions) {
       for (const ps of s.productSelections ?? []) {
         if (!ps?.productId || !ps?.productTypeId || !ps?.quantity || ps.quantity <= 0) continue;
-
         const product = productsQuery.data?.find(p => p.id === ps.productId);
         if (!product) continue;
         const pt = product.productTypes?.find(t => t.id === ps.productTypeId);
         if (!pt) continue;
-
-        const isFood = product.productType === "Food";
-        const isDineIn = pt.productSubtype === "DINE-IN";
-
-        if (isFood && isDineIn) {
+        if (product.productType === "Food" && pt.productSubtype === "DINE-IN") {
           totalDineInMeals += Number(ps.quantity);
         }
-        // TAKE-AWAY selections have NO validation per requirement
       }
     }
 
-    // Apply equality rule ONLY if user has selected any DINE-IN meals
-    if (totalDineInMeals > 0) {
-      if (totalDineInMeals !== totalPeople) {
-        validationError = `For dine-in meals, the total number of meals selected across sessions must equal the total number of attendees (Adults + Children + Elder = ${totalPeople}). Currently selected dine-in meals: ${totalDineInMeals}.`;
+    if (totalDineInMeals > 0 && totalPeople < 1) {
+      validationError = "You have selected dine-in meals but no counted guests (Adults/Children/Elder). Please add guests.";
+    } else {
+      const requiredMeals = totalPeople * foodSessionsCount;
+      if (totalDineInMeals !== requiredMeals) {
+        validationError = `Dine-in meals must equal total guests × selected sessions. Guests: ${totalPeople}, Sessions with food: ${foodSessionsCount} → Required: ${requiredMeals}. Currently selected dine-in meals: ${totalDineInMeals}.`;
       }
     }
   }
@@ -330,7 +323,6 @@ function GuestRegistrationPage() {
     return;
   }
 
-  // Proceed with existing submission: filter selections and post
   const filteredSessionSelections = data.sessionSelections
     .filter((session) => session.selected)
     .map((session) => ({
@@ -353,7 +345,7 @@ function GuestRegistrationPage() {
   } catch (error) {
     console.error("Registration error:", error);
   }
-};;;
+};;;;
 
 /*  const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
