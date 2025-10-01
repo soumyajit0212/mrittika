@@ -276,7 +276,7 @@ case "registrations":
         });
 
         headers = [
-          "Order Date", "Transaction ID", "Guest Name", "Guest Email", "Guest Phone", "Guest Location",
+          "Order Date", "Transaction ID", "Order Status", "Guest Name", "Guest Email", "Guest Phone", "Guest Location",
           "Adults", "Children", "Infants", "Elders", "Total Family Size",
           "Member Name", "Member Email", "Member Phone",
           "Session Name", "Session Date", "Session Time",
@@ -291,6 +291,7 @@ case "registrations":
           const baseInfo = [
             order.createdAt.toISOString().split('T')[0],
             order.transactionId,
+            order.status,
             order.guest?.guestName || order.member?.memberName || "N/A",
             order.guest?.guestEmail || order.member?.memberEmail || "N/A",
             order.guest?.guestPhone || order.member?.memberPhone || "N/A",
