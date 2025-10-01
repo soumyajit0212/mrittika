@@ -18,8 +18,24 @@ export const updateOrder = baseProcedure
   }))
   .mutation(async ({ input }) => {
     await requireAdmin(input.authToken);
+    const onlyStatusUpdate =
+          typeof input.status !== "undefined" &&
+          (!input.orderLines || input.orderLines.length === 0);
 
+        if (onlyStatusUpdate) {
+          return db.orderMaster.update({
+            where: { id: input.orderId },
+            data: { status: input.status! },
+            include: {
+              orderLines: true,
+              guest: true,
+              member: true,
+            },
+          });
+        }
     const { orderId, totalCost, status, orderLines, ...updateData } = input;
+
+
 
     // If orderLines are provided, we need to update them and recalculate total cost
     if (orderLines) {
@@ -124,7 +140,7 @@ export const updateOrder = baseProcedure
           }
         }
       },
-  { maxWait: 10_000, timeout: 20_000 }
+  { maxWait: 10000, timeout: 20000 }
   );
 
       return updatedOrder;
