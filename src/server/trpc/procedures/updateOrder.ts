@@ -70,11 +70,25 @@ export const updateOrder = baseProcedure
           }
         }
 
+        // Substracting discount from orderMaster
+
+        const om = await db.orderMaster.findUnique({
+          where: { id: input.orderId },
+          select: { discountAmount: true },
+        });
+
+        // 2) Coerce to number (guards against null/undefined or accidental string)
+        const savedDiscount = Number(om?.discountAmount ?? 0);
+
+        // 3) Subtract discount from your freshly computed total
+        //    (Assumes your `newTotalCost` is the pre-discount total)
+        const finalTotalCost = Math.max(0, Number(newTotalCost) - savedDiscount);
+
         // Update the order master with new total cost
         return await tx.orderMaster.update({
           where: { id: orderId },
           data: {
-            ...(newTotalCost !== undefined && { totalCost: newTotalCost }),
+            ...(finalTotalCost !== undefined && { totalCost: finalTotalCost }),
             ...(status !== undefined && { status }),
           },
           include: {
@@ -96,7 +110,7 @@ export const updateOrder = baseProcedure
       const updatedOrder = await db.orderMaster.update({
         where: { id: orderId },
         data: {
-          ...(totalCost !== undefined && { totalCost }),
+          ...(finalTotalCost !== undefined && { finalTotalCost }),
           ...(status !== undefined && { status }),
         },
         include: {

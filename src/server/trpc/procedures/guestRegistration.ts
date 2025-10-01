@@ -218,23 +218,33 @@ export const guestRegistration = baseProcedure
     const twoSessions = sessionIds.length ==2 && sessionIds.length < 3;
     const threeSessions = sessionIds.length ==3 && sessionIds.length < 4;
     const fourSessions = sessionIds.length ==4 && sessionIds.length < event.sessions.length;
+    let discountApplied = false;
+    let discountF=1;
     let finalEntryCost = entryCost;
     if (allSessionsSelected && entryCost > 0) {
       finalEntryCost = entryCost * 0.7; // 30% discount on entry only
+      discountApplied = true;
+      discountF=0.7;
     }else if (fourSessions && entryCost > 0){
         finalEntryCost = entryCost * 0.75; // 25% discount on entry only
+        discountApplied = true;
+        discountF=0.75;
     }else if (threeSessions && entryCost > 0){
         finalEntryCost = entryCost * 0.8; // 20% discount on entry only
+        discountApplied = true;
+        discountF=0.8;
     }else if (twoSessions && entryCost > 0){
-             finalEntryCost = entryCost * 0.9; // 10% discount on entry only
+        finalEntryCost = entryCost * 0.9; // 10% discount on entry only
+        discountApplied = true;
+        discountF=0.9;
     }
-
+//const discountAmount = discountApplied ? (entryCost * (1 - discountF)).toFixed(2) : 0;
 /*else if (sessionIds.length >= 4 && sessionIds.length < event.sessions.length && entryCost > 0){
       finalEntryCost = entryCost * 0.8; // 20% discount on entry only
     }else if (sessionIds.length >= 2 && sessionIds.length < 4 && entryCost > 0){
       finalEntryCost = entryCost * 0.9; // 10% discount on entry only
     }*/
-
+    const discountAmount = entryCost - finalEntryCost;
     // Total cost is discounted entry cost + full food cost
     const totalCost = finalEntryCost + foodCost;
 
@@ -262,6 +272,7 @@ export const guestRegistration = baseProcedure
         guestId: guest.id,
         totalCost,
         transactionId,
+        discountAmount : discountAmount,
         orderLines: {
           create: orderLines.map(line => ({
             productId: line.productId,
@@ -285,7 +296,7 @@ export const guestRegistration = baseProcedure
       transactionId,
       totalCost,
       discountApplied: allSessionsSelected && entryCost > 0,
-      discountAmount: allSessionsSelected && entryCost > 0 ? entryCost * 0.3 : 0,
+      discountAmount: discountAmount,
       entryCost: finalEntryCost,
       foodCost,
       guest,

@@ -255,34 +255,41 @@ function GuestRegistrationPage() {
     let discountPct="0%";
     let discountF=1;
     let discountApplied = false;
+    let discountAmount = 0;
+    // Calulating Discount and adding as placeholder
+   // const discountAmount = discountApplied ? (entryCost * (1 - discountF)).toFixed(2) : 0;
 
     if (allSessionsSelected && entryCost > 0) {
       entryCost = entryCost * 0.7; // 30% discount on entry only
       discountApplied = true;
       discountPct="30%";
       discountF=0.7;
+      discountAmount = entryCost * 0.3;
     }else if (fourSessions && entryCost > 0){
       entryCost = entryCost * 0.75;
       discountPct="25%";
       discountApplied = true;
       discountF=0.75;
+      discountAmount = entryCost * 0.25;
     }else if (threeSessions && entryCost > 0){
       entryCost = entryCost * 0.8;
       discountPct="20%";
       discountF=0.8;
       discountApplied = true;
+      discountAmount = entryCost * 0.2;
     }else if (twoSessions && entryCost > 0){
         entryCost = entryCost * 0.9;
         discountPct="10%";
         discountF=0.9;
         discountApplied = true;
+        discountAmount = entryCost * 0.1;
     }
 
     const totalCost = entryCost + foodCost;
-    return { totalCost, entryCost, foodCost, discountApplied, discountPct, discountF};
+    return { totalCost, entryCost, foodCost, discountAmount, discountApplied, discountPct, discountF};
   };
 
-  const { totalCost, entryCost, foodCost, discountApplied, discountPct,  discountF} = calculateTotalCost();
+  const { totalCost, entryCost, foodCost, discountAmount, discountApplied, discountPct,  discountF} = calculateTotalCost();
 
   const onSubmit = async (data: RegistrationForm) => {
   let validationError = "";
@@ -300,7 +307,6 @@ function GuestRegistrationPage() {
       });
       return !!hasDineIn;
     });
-
   const foodSessionsCount = selectedFoodSessions.length;
 
   if (foodSessionsCount > 0) {

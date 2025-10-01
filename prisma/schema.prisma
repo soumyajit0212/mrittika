@@ -142,6 +142,7 @@ model OrderMaster {
   member    Member? @relation(fields: [memberId], references: [id])
   orderDate DateTime @default(now())
   totalCost Float
+  discountAmount Float    @default(0)
   status      OrderStatus  @default(PENDING)
   transactionId String @unique
   orderLines OrderLine[]
