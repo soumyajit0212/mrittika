@@ -123,7 +123,9 @@ export const updateOrder = baseProcedure
             }
           }
         }
-      });
+      },
+  { maxWait: 10_000, timeout: 20_000 }
+  );
 
       return updatedOrder;
     }
