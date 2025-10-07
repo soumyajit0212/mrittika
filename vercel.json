@@ -1,5 +1,1 @@
-{
-  "functions": {
-    "app/**/route.{js,ts}": { "maxDuration": 20 }
-  }
-}
+{ "runtime": "nodejs20.x", "maxDuration": 20 }
