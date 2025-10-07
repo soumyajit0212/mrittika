@@ -1,5 +1,5 @@
 {
   "functions": {
-    "*": { "maxDuration": 20 }
+    "app/**/route.{js,ts}": { "maxDuration": 20 }
   }
 }
