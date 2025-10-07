@@ -1,5 +1,6 @@
 {
   "functions": {
-    "api/trpc/*": { "maxDuration": 20 }
+    "api/**/*.{js,mjs,cjs,ts}": { "maxDuration": 20 },
+    "server/**/*.{js,mjs,cjs,ts}": { "maxDuration": 20 }
   }
 }
