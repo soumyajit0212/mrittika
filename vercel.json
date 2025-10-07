@@ -1,1 +1,6 @@
-{ "runtime": "nodejs20.x", "maxDuration": 20 }
+{
+  "functions": {
+    "pages/api/**/*.{js,ts}": { "maxDuration": 20 },
+    "app/**/route.{js,ts}":  { "maxDuration": 20 }
+  }
+}
