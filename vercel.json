@@ -1,5 +1,5 @@
 {
   "functions": {
-    "api/trpc/*": { "maxDuration": 20 }
+    "api/trpc/procedures/*": { "maxDuration": 20 }
   }
 }
