@@ -1,6 +1,5 @@
 {
   "functions": {
-    "api/**/*.{js,mjs,cjs,ts}": { "maxDuration": 20 },
-    "server/**/*.{js,mjs,cjs,ts}": { "maxDuration": 20 }
+    "server/**/*/*.{js,mjs,cjs,ts}": { "maxDuration": 20 }
   }
 }
