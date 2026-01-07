@@ -77,12 +77,31 @@ function GuestRegistrationPage() {
 
   const registrationMutation = useMutation(trpc.guestRegistration.mutationOptions({
     onSuccess: (data) => {
-    toast.success(<span>Registration successful! Transaction ID: <strong>{data.transactionId}</strong>.<br/> Please transfer <strong>${data.totalCost.toFixed(2)}</strong> to <strong>mrittikacanada@gmail.com</strong></span>, { duration: 10000 });
+    toast.success(
+      (t) => (
+        <div className="flex flex-col gap-2">
+          <span>
+            Registration successful! Transaction ID: <strong>{data.transactionId}</strong>.<br />
+            Please transfer <strong>${data.totalCost.toFixed(2)}</strong> to <strong>mrittikacanada@gmail.com</strong>
+          </span>
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="self-end text-sm text-gray-500 hover:text-gray-700 border border-gray-300 rounded px-2 py-1"
+          >
+            Close
+          </button>
+        </div>
+      ),
+      {
+        duration: 10000,
+        position: "top-center",
+      }
+    );
     reset();
     setSelectedEventId(null);
     },
     onError: (error: any) => {
-      toast.error(error.message || "Registration failed");
+      toast.error(error.message || "Registration failed", { position: "top-center" });
     },
   }));
 
@@ -612,21 +631,6 @@ const formatDate = (iso: string) => {
               <div className="space-y-6">
                 <h2 className="text-lg font-medium text-gray-900">Session & Product Selection</h2>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm text-blue-800">
-                    <strong>Guest Pricing:</strong> Entry fees apply for all sessions. Select 2 sessions to get <strong>10% </strong>off entry fees! Food items are charged at regular prices.
-                  </p>
-                  <p className="text-sm text-blue-800">
-                     <strong>Guest Pricing:</strong> Entry fees apply for all sessions. Select 3 sessions to get <strong>20% </strong>off entry fees! Food items are charged at regular prices.
-                  </p>
-                  <p className="text-sm text-blue-800">
-                    <strong>Guest Pricing:</strong> Entry fees apply for all sessions. Select 4 sessions to get <strong>25% </strong>off entry fees! Food items are charged at regular prices.
-                  </p>
-                  <p className="text-sm text-blue-800">
-                    <strong>Guest Pricing:</strong> Entry fees apply for all sessions. Select all sessions to get <strong>30% </strong>off entry fees! Food items are charged at regular prices.
-                  </p>
-                </div>
-
                 <div className="space-y-4">
                   {sessionFields.map((field, sessionIndex) => {
                     const session = sessionsQuery.data?.find(s => s.id === field.sessionId);
@@ -742,7 +746,6 @@ const formatDate = (iso: string) => {
                                 <h4 className="font-semibold text-blue-900 mb-2">🍽️ Food Selection Guide</h4>
                                 <div className="text-sm text-blue-800 space-y-1">
                                   <p><strong>Your Group:</strong> {adults} Adult{adults !== 1 ? 's' : ''}, {children} Children, {elder} Elder{elder !== 1 ? 's' : ''}</p>
-                                  <p><strong>Guest Pricing:</strong> Entry fees apply (30% discount if all sessions selected)</p>
                                   <p><strong>Dine-in meals:</strong> You must select exactly one meal per person in each category</p>
                                   <p><strong>Take-away items:</strong> You can select any quantity you want</p>
                                   <p>💡 <strong>Tip:</strong> If you don't want food, use the "Skip Food" option above</p>

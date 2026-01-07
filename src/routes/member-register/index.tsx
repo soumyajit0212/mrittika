@@ -54,12 +54,31 @@ function MemberRegistrationPage() {
   const registrationMutation = useMutation(
     trpc.memberRegistration.mutationOptions({
       onSuccess: (data) => {
-        toast.success(<span>Registration successful! Transaction ID: <strong>{data.transactionId}</strong>.<br/> Please transfer <strong>${data.totalCost.toFixed(2)}</strong> to <strong>mrittikacanada@gmail.com</strong></span>, { duration: 10000 });
+        toast.success(
+          (t) => (
+            <div className="flex flex-col gap-2">
+              <span>
+                Registration successful! Transaction ID: <strong>{data.transactionId}</strong>.<br />
+                Please transfer <strong>${data.totalCost.toFixed(2)}</strong> to <strong>mrittikacanada@gmail.com</strong>
+              </span>
+              <button
+                onClick={() => toast.dismiss(t.id)}
+                className="self-end text-sm text-gray-500 hover:text-gray-700 border border-gray-300 rounded px-2 py-1"
+              >
+                Close
+              </button>
+            </div>
+          ),
+          {
+            duration: 10000,
+            position: "top-center",
+          }
+        );
         reset();
         setSelectedEventId(null);
       },
       onError: (error: any) => {
-        toast.error(error.message || "Registration failed");
+        toast.error(error.message || "Registration failed", { position: "top-center" });
       },
     })
   );
